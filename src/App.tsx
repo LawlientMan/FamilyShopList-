@@ -9,6 +9,7 @@ import QuickListPage from './pages/QuickListPage'
 import ListsPage from './pages/ListsPage'
 import ListDetailPage from './pages/ListDetailPage'
 import WishlistsPage from './pages/WishlistsPage'
+import WishlistDetailPage from './pages/WishlistDetailPage'
 import MorePage from './pages/MorePage'
 import JoinPage from './pages/JoinPage'
 import { FullSpinner } from './components/ui'
@@ -41,6 +42,10 @@ function App() {
                 <Route path="lists" element={<ListsPage />} />
                 <Route path="lists/:listId" element={<ListDetailPage />} />
                 <Route path="wishlists" element={<WishlistsPage />} />
+                <Route
+                  path="wishlists/:wishlistId"
+                  element={<WishlistDetailPage />}
+                />
                 <Route path="more" element={<MorePage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
