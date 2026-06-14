@@ -1,0 +1,97 @@
+rules_version = '2';
+
+// FamilyShopList security rules.
+// Membership source of truth: aliases/{aliasId}/members/{uid} with status 'active'.
+// Join-by-code is validated entirely in rules via get() (no Cloud Functions).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+
+    function memberPath(aliasId) {
+      return /databases/$(database)/documents/aliases/$(aliasId)/members/$(uid());
+    }
+    function isActiveMember(aliasId) {
+      return signedIn()
+        && exists(memberPath(aliasId))
+        && get(memberPath(aliasId)).data.status == 'active';
+    }
+    function aliasData(aliasId) {
+      return get(/databases/$(database)/documents/aliases/$(aliasId)).data;
+    }
+    function isOwner(aliasId) {
+      return signedIn() && aliasData(aliasId).ownerId == uid();
+    }
+    function joinCodeOk(aliasId) {
+      return request.resource.data.code == aliasData(aliasId).inviteCode;
+    }
+
+    // ---- user profiles ----
+    match /users/{userId} {
+      allow read, write: if signedIn() && userId == uid();
+    }
+
+    // ---- code -> alias lookup (so a non-member can resolve an invite) ----
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update, delete: if signedIn()
+        && isOwner(request.resource.data.aliasId);
+    }
+
+    // ---- aliases ----
+    match /aliases/{aliasId} {
+      allow create: if signedIn() && request.resource.data.ownerId == uid();
+      allow read:   if isActiveMember(aliasId);
+      allow update, delete: if isOwner(aliasId);
+
+      // membership = source of truth
+      match /members/{memberId} {
+        allow read: if isActiveMember(aliasId);
+
+        // Owner bootstraps own membership right after creating the alias,
+        // OR a new user self-joins with a valid invite code (role forced to member).
+        allow create: if memberId == uid()
+          && request.resource.data.status == 'active'
+          && (
+               isOwner(aliasId)
+            || (joinCodeOk(aliasId) && request.resource.data.role == 'member')
+          );
+
+        // Owner manages members (e.g. soft-remove via status='removed'),
+        // OR a removed user re-joins with a valid code (self update, stays member).
+        allow update: if isOwner(aliasId)
+          || (
+               memberId == uid()
+            && joinCodeOk(aliasId)
+            && request.resource.data.status == 'active'
+            && request.resource.data.role == 'member'
+          );
+
+        allow delete: if isOwner(aliasId);
+      }
+
+      // ---- content: any active member can read/write ----
+      match /quickItems/{itemId} {
+        allow read, write: if isActiveMember(aliasId);
+      }
+      match /lists/{listId} {
+        allow read, write: if isActiveMember(aliasId);
+        match /items/{itemId} {
+          allow read, write: if isActiveMember(aliasId);
+        }
+      }
+      match /wishlists/{wishlistId} {
+        allow read, write: if isActiveMember(aliasId);
+        match /items/{itemId} {
+          allow read, write: if isActiveMember(aliasId);
+        }
+      }
+      match /suggestions/{suggestionId} {
+        allow read, write: if isActiveMember(aliasId);
+      }
+    }
+  }
+}
