@@ -7,6 +7,7 @@ import SignIn from './auth/SignIn'
 import Layout from './components/Layout'
 import QuickListPage from './pages/QuickListPage'
 import ListsPage from './pages/ListsPage'
+import ListDetailPage from './pages/ListDetailPage'
 import WishlistsPage from './pages/WishlistsPage'
 import MorePage from './pages/MorePage'
 import JoinPage from './pages/JoinPage'
@@ -38,6 +39,7 @@ function App() {
               <Route path="/" element={<Layout />}>
                 <Route index element={<QuickListPage />} />
                 <Route path="lists" element={<ListsPage />} />
+                <Route path="lists/:listId" element={<ListDetailPage />} />
                 <Route path="wishlists" element={<WishlistsPage />} />
                 <Route path="more" element={<MorePage />} />
               </Route>

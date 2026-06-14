@@ -3,8 +3,10 @@
 // enforced by firestore.rules. Document shapes mirror DATA-MODEL.md exactly.
 
 import {
+  addDoc,
   collection,
   collectionGroup,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -214,6 +216,41 @@ export async function regenerateInvite(alias: Alias): Promise<string> {
   }
 
   return newCode
+}
+
+// ---- named lists (FR-10.2) ----
+// Lists live at aliases/{aliasId}/lists/{listId} with { name, createdAt, createdBy }.
+// Their items reuse the shopping-item shape (paths.listItems + lib/items.ts).
+export async function createList(
+  aliasId: string,
+  fbUser: FirebaseUser,
+  name: string,
+): Promise<string> {
+  const ref = await addDoc(paths.lists(aliasId), {
+    name: name.trim(),
+    createdBy: fbUser.uid,
+    createdAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function renameList(
+  aliasId: string,
+  listId: string,
+  name: string,
+): Promise<void> {
+  await updateDoc(doc(paths.lists(aliasId), listId), { name: name.trim() })
+}
+
+// Delete a list. Items in its subcollection are removed first so no orphans are
+// left (Firestore has no client-side cascade; the family-sized lists are small).
+export async function deleteList(
+  aliasId: string,
+  listId: string,
+): Promise<void> {
+  const items = await getDocs(paths.listItems(aliasId, listId))
+  await Promise.all(items.docs.map((d) => deleteDoc(d.ref)))
+  await deleteDoc(doc(paths.lists(aliasId), listId))
 }
 
 // ---- list my aliases (for the switcher, DATA-MODEL.md collectionGroup query) ----
