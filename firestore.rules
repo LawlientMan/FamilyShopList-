@@ -65,7 +65,11 @@ service cloud.firestore {
 
       // membership = source of truth
       match /members/{memberId} {
-        allow read: if isActiveMember(aliasId);
+        // A user can ALWAYS read their own membership docs — required for the
+        // collectionGroup self-query in listMyAliases (get()-based checks do not
+        // work for collectionGroup `list` rules, there is no bound aliasId).
+        // Active members can additionally read the whole roster of their alias.
+        allow read: if resource.data.uid == uid() || isActiveMember(aliasId);
 
         // Owner bootstraps own membership right after creating the alias,
         // OR a new user self-joins with a valid, active invite code (role forced

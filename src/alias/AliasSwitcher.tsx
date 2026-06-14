@@ -68,7 +68,8 @@ export function AliasSwitcher({
       await refresh()
       setActiveAliasId(id)
       close()
-    } catch {
+    } catch (e) {
+      console.error('createAlias failed', e)
       setError('Could not create the space. Please try again.')
     } finally {
       setBusy(false)
