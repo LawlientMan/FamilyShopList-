@@ -49,6 +49,16 @@ service cloud.firestore {
       allow read, write: if signedIn() && userId == uid();
     }
 
+    // ---- collectionGroup query support for `members` ----
+    // Firestore rules v2: nested /aliases/{id}/members rules do NOT apply to
+    // collectionGroup queries. listMyAliases() runs collectionGroup('members')
+    // filtered by uid, so it needs this dedicated recursive-wildcard match.
+    // Grants reading ONLY the caller's own membership docs (resource.data.uid ==
+    // caller). Roster reads of OTHER members stay governed by the nested rule.
+    match /{path=**}/members/{memberId} {
+      allow read: if signedIn() && resource.data.uid == uid();
+    }
+
     // ---- code -> alias lookup (so a non-member can resolve an invite) ----
     match /invites/{code} {
       allow get: if signedIn();
@@ -65,11 +75,7 @@ service cloud.firestore {
 
       // membership = source of truth
       match /members/{memberId} {
-        // A user can ALWAYS read their own membership docs — required for the
-        // collectionGroup self-query in listMyAliases (get()-based checks do not
-        // work for collectionGroup `list` rules, there is no bound aliasId).
-        // Active members can additionally read the whole roster of their alias.
-        allow read: if resource.data.uid == uid() || isActiveMember(aliasId);
+        allow read: if isActiveMember(aliasId);
 
         // Owner bootstraps own membership right after creating the alias,
         // OR a new user self-joins with a valid, active invite code (role forced
