@@ -20,7 +20,7 @@ export default function Layout() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-ink-100">
       {/* Header: alias switcher trigger + profile avatar */}
-      <header className="sticky top-0 z-20 bg-white/90 px-4 pl-safe pr-safe pt-safe shadow-sm backdrop-blur">
+      <header className="sticky top-0 z-20 bg-white/90 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-safe shadow-sm backdrop-blur">
         <div className="flex h-14 items-center justify-between">
           <button
             type="button"
@@ -47,7 +47,7 @@ export default function Layout() {
       </main>
 
       {/* Bottom navigation — safe-area aware (NFR-4) */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-ink-200 bg-white/95 px-2 pl-safe pr-safe pb-safe-nav pt-1.5 shadow-nav backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-ink-200 bg-white/95 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] pb-safe-nav pt-1.5 shadow-nav backdrop-blur">
         <ul className="flex items-stretch justify-around">
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <li key={to} className="flex-1">
