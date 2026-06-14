@@ -6,7 +6,6 @@ import {
   addDoc,
   deleteDoc,
   doc,
-  getDoc,
   getDocs,
   increment,
   limit,
@@ -98,6 +97,12 @@ export async function deleteItem(
 
 // Record a name in the autocomplete history for this alias (FR-B2). Keyed by
 // nameLower as the document id so repeats just bump the count.
+//
+// Single setDoc(merge) with increment() — no read-then-write round trip and no
+// race: increment() on a missing field starts from 0, so concurrent adds of the
+// same name from two devices both increment the shared counter instead of one
+// overwriting the other (the previous getDoc + create/update branch could lose
+// a count when both took the create branch).
 export async function recordSuggestion(
   aliasId: string,
   name: string,
@@ -106,18 +111,14 @@ export async function recordSuggestion(
   if (!nameLower) return
   // nameLower is the doc id, so repeats hit the same document.
   const ref = doc(paths.suggestions(aliasId), nameLower)
-  const snap = await getDoc(ref)
-  if (snap.exists()) {
-    await updateDoc(ref, {
+  await setDoc(
+    ref,
+    {
+      name: name.trim(),
+      nameLower,
       count: increment(1),
       lastUsedAt: serverTimestamp(),
-    })
-    return
-  }
-  await setDoc(ref, {
-    name: name.trim(),
-    nameLower,
-    count: 1,
-    lastUsedAt: serverTimestamp(),
-  })
+    },
+    { merge: true },
+  )
 }

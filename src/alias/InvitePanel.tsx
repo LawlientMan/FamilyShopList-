@@ -5,7 +5,14 @@ import { regenerateInvite } from '../lib/db'
 import { useAlias } from './alias-context'
 import type { Alias } from '../types'
 
-const INVITE_BASE = 'https://family-shop-list-2b4ae.web.app/join'
+// Derive the invite base from the current origin so the shared link always
+// matches where the app is actually served (prod, preview channel, or emulator
+// per NFR-5) instead of a hardcoded production host. Falls back to the prod
+// host for non-browser contexts.
+const INVITE_BASE =
+  typeof window !== 'undefined' && window.location?.origin
+    ? `${window.location.origin}/join`
+    : 'https://family-shop-list-2b4ae.web.app/join'
 
 function inviteLink(code: string): string {
   return `${INVITE_BASE}/${code}`

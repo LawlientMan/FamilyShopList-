@@ -65,13 +65,13 @@ export function ShoppingItemRow({ itemsRef, item }: ShoppingItemRowProps) {
         aria-pressed={item.done}
         aria-label={item.done ? 'Mark as not bought' : 'Mark as bought'}
         className={cn(
-          'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+          'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
           item.done
             ? 'border-primary-600 bg-primary-600 text-white'
             : 'border-ink-300 bg-white text-transparent hover:border-primary-500',
         )}
       >
-        <Check className="h-4 w-4" aria-hidden />
+        <Check className="h-5 w-5" aria-hidden />
       </button>
 
       <div className="min-w-0 flex-1">

@@ -33,7 +33,7 @@ export function NumberStepper({
   return (
     <div
       className={cn(
-        'inline-flex h-11 items-center gap-1 rounded-card border border-ink-200 bg-white p-1',
+        'inline-flex h-12 items-center gap-1 rounded-card border border-ink-200 bg-white p-1',
         className,
       )}
       role="group"

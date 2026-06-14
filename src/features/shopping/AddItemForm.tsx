@@ -7,10 +7,10 @@
 // FR-B4: dedup happens in addOrUpdateItem (keyed by nameLower).
 
 import { useEffect, useRef, useState } from 'react'
-import { Check, Plus, X } from 'lucide-react'
+import { Check, Plus } from 'lucide-react'
 import type { CollectionReference, DocumentData } from 'firebase/firestore'
 import type { User as FirebaseUser } from 'firebase/auth'
-import { Button, IconButton, NumberStepper, TextInput } from '../../components/ui'
+import { Button, NumberStepper, TextInput } from '../../components/ui'
 import { cn } from '../../lib/cn'
 import { addOrUpdateItem, recordSuggestion } from '../../lib/items'
 import type { Suggestion } from '../../types'
@@ -62,7 +62,11 @@ export function AddItemForm({ itemsRef, aliasId, user }: AddItemFormProps) {
         qty,
         unit: unit.trim(),
       })
-      await recordSuggestion(aliasId, trimmed)
+      // Suggestion history is best-effort (FR-B2): a failure here must not block
+      // the item that already saved, nor surface as a submit error. These are
+      // two independent writes (no transactions on Spark); the autocomplete
+      // count is non-critical, so we swallow its failure.
+      void recordSuggestion(aliasId, trimmed).catch(() => {})
       reset()
       // Keep the form open and refocus for fast consecutive adds.
       nameRef.current?.focus()
@@ -112,14 +116,6 @@ export function AddItemForm({ itemsRef, aliasId, user }: AddItemFormProps) {
               else close()
             }
           }}
-          rightSlot={
-            <IconButton
-              label="Cancel"
-              size="sm"
-              icon={<X className="h-4 w-4" />}
-              onClick={close}
-            />
-          }
         />
         {/* FR-B2: autocomplete dropdown from history */}
         {showSuggestions && suggestions.length > 0 && (
@@ -139,27 +135,30 @@ export function AddItemForm({ itemsRef, aliasId, user }: AddItemFormProps) {
         )}
       </div>
 
-      {/* FR-B3: optional quantity + optional unit */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <NumberStepper value={qty} onChange={setQty} />
-        {/* Compact unit field wrapper so the row stays mobile-friendly. */}
-        <div className="w-24">
-          <TextInput
-            name="item-unit"
-            placeholder="unit"
-            autoComplete="off"
-            value={unit}
-            onChange={(e) => setUnit(e.target.value)}
-          />
+      {/* FR-B3: optional quantity + optional unit. Stepper and unit field share a
+          row; the quick-unit chips sit directly under the unit field (instead of
+          wrapping awkwardly beside it) so they read as belonging to it at 412px. */}
+      <div className="mt-3 flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <NumberStepper value={qty} onChange={setQty} />
+          <div className="flex-1">
+            <TextInput
+              name="item-unit"
+              placeholder="unit"
+              autoComplete="off"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+            />
+          </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-2">
           {QUICK_UNITS.map((u) => (
             <button
               key={u}
               type="button"
               onClick={() => setUnit(u)}
               className={cn(
-                'h-9 rounded-card border px-2.5 text-sm font-medium transition-colors',
+                'h-10 min-w-[2.75rem] rounded-card border px-3 text-sm font-medium transition-colors',
                 unit === u
                   ? 'border-primary-500 bg-primary-50 text-primary-700'
                   : 'border-ink-200 bg-white text-ink-600 hover:bg-ink-50',

@@ -21,7 +21,7 @@ import type { Wishlist } from '../types'
 // alias with a live item count, a "New wishlist" action, and rename/delete per
 // wishlist. Tapping a wishlist navigates to /wishlists/:wishlistId (its items).
 export default function WishlistsPage() {
-  const { activeAliasId } = useAlias()
+  const { activeAliasId, setSwitcherOpen } = useAlias()
   const { user } = useAuthUser()
   const { data: wishlists, loading } = useWishlists(activeAliasId)
 
@@ -38,8 +38,16 @@ export default function WishlistsPage() {
         <EmptyState
           icon={<Gift className="h-6 w-6" />}
           title="No space selected"
-          description="Create or join a space from the switcher at the top to start adding wishlists."
+          description="Create or join a space to start adding wishlists."
           className="flex-1"
+          action={
+            <Button
+              leftIcon={<Plus className="h-5 w-5" />}
+              onClick={() => setSwitcherOpen(true)}
+            >
+              Create a space
+            </Button>
+          }
         />
       </div>
     )

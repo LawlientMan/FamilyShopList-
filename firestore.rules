@@ -27,6 +27,22 @@ service cloud.firestore {
     function joinCodeOk(aliasId) {
       return request.resource.data.code == aliasData(aliasId).inviteCode;
     }
+    // The invite doc for `code` exists and is still active (revocation defense:
+    // Regenerate flips the old invite's active=false, so an old code is rejected
+    // here even though the client also blocks it via resolveInvite).
+    function inviteActive(code) {
+      return exists(/databases/$(database)/documents/invites/$(code))
+        && get(/databases/$(database)/documents/invites/$(code)).data.active == true;
+    }
+    // Content authorship integrity: a create must stamp the caller as author;
+    // an update must not rewrite authorId or createdAt (DATA-MODEL.md snapshot).
+    function authoredByCaller() {
+      return request.resource.data.authorId == uid();
+    }
+    function authorFrozen() {
+      return request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
 
     // ---- user profiles ----
     match /users/{userId} {
@@ -52,20 +68,30 @@ service cloud.firestore {
         allow read: if isActiveMember(aliasId);
 
         // Owner bootstraps own membership right after creating the alias,
-        // OR a new user self-joins with a valid invite code (role forced to member).
+        // OR a new user self-joins with a valid, active invite code (role forced
+        // to member). The written doc must identify itself with the caller uid.
         allow create: if memberId == uid()
+          && request.resource.data.uid == uid()
           && request.resource.data.status == 'active'
           && (
-               isOwner(aliasId)
-            || (joinCodeOk(aliasId) && request.resource.data.role == 'member')
+               (isOwner(aliasId) && request.resource.data.role == 'owner')
+            || (
+                 joinCodeOk(aliasId)
+              && inviteActive(request.resource.data.code)
+              && request.resource.data.role == 'member'
+            )
           );
 
         // Owner manages members (e.g. soft-remove via status='removed'),
-        // OR a removed user re-joins with a valid code (self update, stays member).
+        // OR a previously-removed user re-joins with a valid, active code
+        // (self update, stays member, cannot rewrite uid or escalate role).
         allow update: if isOwner(aliasId)
           || (
                memberId == uid()
+            && request.resource.data.uid == uid()
+            && resource.data.status == 'removed'
             && joinCodeOk(aliasId)
+            && inviteActive(request.resource.data.code)
             && request.resource.data.status == 'active'
             && request.resource.data.role == 'member'
           );
@@ -73,22 +99,34 @@ service cloud.firestore {
         allow delete: if isOwner(aliasId);
       }
 
-      // ---- content: any active member can read/write ----
+      // ---- content: any active member reads; authorship is enforced on write ----
+      // create must stamp the caller as author; update must not rewrite the
+      // author snapshot (authorId/createdAt); delete is unrestricted for members.
       match /quickItems/{itemId} {
-        allow read, write: if isActiveMember(aliasId);
+        allow read: if isActiveMember(aliasId);
+        allow create: if isActiveMember(aliasId) && authoredByCaller();
+        allow update: if isActiveMember(aliasId) && authorFrozen();
+        allow delete: if isActiveMember(aliasId);
       }
       match /lists/{listId} {
         allow read, write: if isActiveMember(aliasId);
         match /items/{itemId} {
-          allow read, write: if isActiveMember(aliasId);
+          allow read: if isActiveMember(aliasId);
+          allow create: if isActiveMember(aliasId) && authoredByCaller();
+          allow update: if isActiveMember(aliasId) && authorFrozen();
+          allow delete: if isActiveMember(aliasId);
         }
       }
       match /wishlists/{wishlistId} {
         allow read, write: if isActiveMember(aliasId);
         match /items/{itemId} {
-          allow read, write: if isActiveMember(aliasId);
+          allow read: if isActiveMember(aliasId);
+          allow create: if isActiveMember(aliasId) && authoredByCaller();
+          allow update: if isActiveMember(aliasId) && authorFrozen();
+          allow delete: if isActiveMember(aliasId);
         }
       }
+      // suggestions have no author snapshot — plain member read/write.
       match /suggestions/{suggestionId} {
         allow read, write: if isActiveMember(aliasId);
       }

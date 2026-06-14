@@ -114,7 +114,15 @@ aliases/{aliasId}
 - **Возврат (FR-11):** исключённый снова вводит код → правило-self-update
   возвращает `status='active'`.
 - **Regenerate:** owner меняет `aliases/{id}.inviteCode` и пересоздаёт `invites/{code}`
-  (старый помечает `active:false` / удаляет). Старая ссылка больше не вступает.
+  (старый помечает `active:false`). Старая ссылка больше не вступает.
+  - Порядок записей (best-effort, без транзакций): (1) создать НОВЫЙ `invites/{newCode}`
+    с `active:true`; (2) перенаправить `aliases/{id}.inviteCode = newCode`;
+    (3) пометить старый `invites/{oldCode}.active = false`. Так алиас и активный
+    инвайт не расходятся.
+  - **Отзыв подтверждается правилами:** правило членства проверяет не только
+    `code == alias.inviteCode`, но и `invites/{code}.active == true`
+    (функция `inviteActive`). Поэтому старый код отвергается даже если клиент
+    подсунет его напрямую, а не только через `resolveInvite`.
 
 > ⚠️ Важно при создании алиаса: документ `aliases/{id}` и свой `members/{uid}`
 > пишутся ДВУМЯ последовательными операциями (не одним batch) — правило членства
@@ -127,8 +135,13 @@ aliases/{aliasId}
 
 ## Требуемые индексы (firestore.indexes.json)
 - collectionGroup `members`: `uid ASC, status ASC`.
-- (возможно) `quickItems`/`items`: `done ASC, updatedAt DESC` и `done ASC, boughtAt DESC`
-  — Firestore подскажет точную конфигурацию при первом запросе.
+- `quickItems`/`items`: `done ASC, updatedAt DESC` и `done ASC, boughtAt DESC`
+  (объявлены в firestore.indexes.json).
+- `suggestions` (автозаполнение): префиксный запрос `where nameLower >= p`,
+  `<= p+`, `orderBy nameLower` обслуживается **автоматическим single-field
+  индексом** Firestore по `nameLower`. Отдельная запись в `indexes` НЕ нужна.
+  ⚠️ Не добавлять `fieldOverride`, отключающий индексацию `suggestions.nameLower` —
+  это сломает автозаполнение.
 
 ## Ограничения / заметки
 - Все запросы — клиентские; правила Firestore — единственный барьер безопасности.

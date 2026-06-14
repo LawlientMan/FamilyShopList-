@@ -31,6 +31,18 @@ export function MembersSection({ alias }: { alias: Alias }) {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null)
   const [removing, setRemoving] = useState(false)
+  // Guards reactivation against a double-tap firing two writes (FR-11).
+  const [reactivatingUid, setReactivatingUid] = useState<string | null>(null)
+
+  const handleReactivate = async (uid: string) => {
+    if (reactivatingUid) return
+    setReactivatingUid(uid)
+    try {
+      await reactivateMember(alias.id, uid)
+    } finally {
+      setReactivatingUid(null)
+    }
+  }
 
   const sorted = useMemo(
     () =>
@@ -122,7 +134,8 @@ export function MembersSection({ alias }: { alias: Alias }) {
                       variant="subtle"
                       size="sm"
                       icon={<RotateCcw className="h-4 w-4" />}
-                      onClick={() => void reactivateMember(alias.id, m.uid)}
+                      disabled={reactivatingUid === m.uid}
+                      onClick={() => void handleReactivate(m.uid)}
                     />
                   ) : (
                     <IconButton

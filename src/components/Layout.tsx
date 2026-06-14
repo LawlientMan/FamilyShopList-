@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { ChevronDown, ListTodo, Gift, Menu, Zap } from 'lucide-react'
 import { useAlias } from '../alias/alias-context'
@@ -15,14 +14,13 @@ const navItems = [
 ]
 
 export default function Layout() {
-  const { activeAlias } = useAlias()
+  const { activeAlias, switcherOpen, setSwitcherOpen } = useAlias()
   const { user } = useAuthUser()
-  const [switcherOpen, setSwitcherOpen] = useState(false)
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-ink-100">
       {/* Header: alias switcher trigger + profile avatar */}
-      <header className="sticky top-0 z-20 bg-white/90 px-4 pt-safe shadow-sm backdrop-blur">
+      <header className="sticky top-0 z-20 bg-white/90 px-4 pl-safe pr-safe pt-safe shadow-sm backdrop-blur">
         <div className="flex h-14 items-center justify-between">
           <button
             type="button"
@@ -49,7 +47,7 @@ export default function Layout() {
       </main>
 
       {/* Bottom navigation — safe-area aware (NFR-4) */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-ink-200 bg-white/95 px-2 pb-safe-nav pt-1.5 shadow-nav backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-ink-200 bg-white/95 px-2 pl-safe pr-safe pb-safe-nav pt-1.5 shadow-nav backdrop-blur">
         <ul className="flex items-stretch justify-around">
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <li key={to} className="flex-1">

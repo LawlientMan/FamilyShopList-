@@ -1,15 +1,15 @@
 import { useMemo } from 'react'
-import { Zap } from 'lucide-react'
+import { Plus, Zap } from 'lucide-react'
 import { useAlias } from '../alias/alias-context'
 import { useAuthUser } from '../auth/auth-context'
 import { paths } from '../lib/db'
-import { EmptyState } from '../components/ui'
+import { Button, EmptyState } from '../components/ui'
 import { ShoppingItemsView } from '../features/shopping'
 
 // Screen 1 — Quick list (FR-9). One flat shared list per space.
 // Item behavior (FR-B1..B9) is provided by the reusable shopping feature.
 export default function QuickListPage() {
-  const { activeAliasId } = useAlias()
+  const { activeAliasId, setSwitcherOpen } = useAlias()
   const { user } = useAuthUser()
 
   // Memoize the collection ref so the items view's queries stay stable.
@@ -26,8 +26,16 @@ export default function QuickListPage() {
         <EmptyState
           icon={<Zap className="h-6 w-6" />}
           title="No space selected"
-          description="Create or join a space from the switcher at the top to start adding items."
+          description="Create or join a space to start adding items. Everything you add is shared with your space."
           className="flex-1"
+          action={
+            <Button
+              leftIcon={<Plus className="h-5 w-5" />}
+              onClick={() => setSwitcherOpen(true)}
+            >
+              Create a space
+            </Button>
+          }
         />
       ) : (
         <ShoppingItemsView

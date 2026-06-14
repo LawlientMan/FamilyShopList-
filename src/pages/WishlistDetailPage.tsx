@@ -24,7 +24,7 @@ import type { WishlistItem } from '../types'
 // priority then name (FR-12.6). Provides a back button to the overview.
 export default function WishlistDetailPage() {
   const { wishlistId } = useParams<{ wishlistId: string }>()
-  const { activeAliasId } = useAlias()
+  const { activeAliasId, setSwitcherOpen } = useAlias()
   const { user } = useAuthUser()
   const navigate = useNavigate()
 
@@ -82,8 +82,16 @@ export default function WishlistDetailPage() {
         <EmptyState
           icon={<Gift className="h-6 w-6" />}
           title="No space selected"
-          description="Create or join a space from the switcher at the top to start adding items."
+          description="Create or join a space to start adding items."
           className="flex-1"
+          action={
+            <Button
+              leftIcon={<Plus className="h-5 w-5" />}
+              onClick={() => setSwitcherOpen(true)}
+            >
+              Create a space
+            </Button>
+          }
         />
       ) : loading ? (
         <FullSpinner />

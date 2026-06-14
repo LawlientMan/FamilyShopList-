@@ -12,6 +12,10 @@ export interface AliasContextValue {
   makeDefault: (aliasId: string) => Promise<void>
   /** Re-fetch my aliases (call after create/join/leave). */
   refresh: () => Promise<void>
+  /** Whether the header space switcher sheet is open. */
+  switcherOpen: boolean
+  /** Open/close the switcher (used by the header trigger and empty states). */
+  setSwitcherOpen: (open: boolean) => void
 }
 
 export const AliasContext = createContext<AliasContextValue | undefined>(

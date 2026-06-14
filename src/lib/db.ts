@@ -193,13 +193,23 @@ export async function reactivateMember(
   await updateDoc(paths.member(aliasId, uid), { status: 'active' })
 }
 
-// Owner rotates the invite code (FR-6 "Regenerate"). Writes the new lookup doc,
-// updates the alias, then deactivates the old invite so the old link/code no
-// longer joins. Returns the new code.
+// Owner rotates the invite code (FR-6 "Regenerate"). Returns the new code.
+//
+// These are sequential, best-effort writes (Spark = no transactions across
+// these refs). The ordering is deliberate so the alias and the active invite
+// never disagree in a way that would reject a legitimate join:
+//   1) create the NEW invite as active — so it exists+active BEFORE the alias
+//      points at it (the member rule checks both joinCodeOk and inviteActive);
+//   2) point the alias at the new code — now the new code fully validates;
+//   3) deactivate the OLD invite — old link/code stops working (the rule's
+//      inviteActive() now rejects it even if a client supplies the old code).
+// If step 2 or 3 fails (e.g. network drop) the caller refreshes the alias, so
+// the panel re-reads the authoritative inviteCode rather than trusting a stale
+// local value; a re-run of Regenerate is idempotent enough for a family app.
 export async function regenerateInvite(alias: Alias): Promise<string> {
   const newCode = generateInviteCode()
 
-  // New code -> alias lookup (owner-gated by the invites rule via ownerId).
+  // 1) New code -> alias lookup, active (owner-gated by the invites rule).
   await setDoc(paths.invite(newCode), {
     code: newCode,
     aliasId: alias.id,
@@ -207,10 +217,10 @@ export async function regenerateInvite(alias: Alias): Promise<string> {
     active: true,
   } satisfies Invite)
 
-  // Point the alias at the new code (the rule's get() now resolves it).
+  // 2) Point the alias at the new code (the rule's get() now resolves it).
   await updateDoc(paths.alias(alias.id), { inviteCode: newCode })
 
-  // Deactivate the previous invite so the old link/code stops working.
+  // 3) Deactivate the previous invite so the old link/code stops working.
   if (alias.inviteCode && alias.inviteCode !== newCode) {
     await updateDoc(paths.invite(alias.inviteCode), { active: false })
   }

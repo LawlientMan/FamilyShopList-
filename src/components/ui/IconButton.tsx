@@ -24,9 +24,11 @@ const variants: Record<Variant, string> = {
   solid: 'bg-primary-600 text-white hover:bg-primary-700',
 }
 
+// sm is 40px so per-item actions still clear the ~44px touch-target guidance
+// on Pixel 7 / iPhone 11 (NFR-4); the icon glyph stays small via its own class.
 const sizes: Record<Size, string> = {
-  sm: 'h-8 w-8',
-  md: 'h-10 w-10',
+  sm: 'h-10 w-10',
+  md: 'h-11 w-11',
   lg: 'h-12 w-12',
 }
 

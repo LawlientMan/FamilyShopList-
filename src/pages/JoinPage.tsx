@@ -10,7 +10,11 @@ import type { Invite } from '../types'
 // /join/:code — confirm and join a space by invite link (FR-6).
 // Routing guarantees the user is signed in before this renders.
 export default function JoinPage() {
-  const { code = '' } = useParams()
+  const { code: rawCode = '' } = useParams()
+  // Codes are generated from an uppercase alphabet and invites/{code} doc ids
+  // are uppercase. Normalize identically to the manual-entry path (AliasSwitcher)
+  // so a link that got lowercased in transit still resolves.
+  const code = rawCode.trim().toUpperCase()
   const navigate = useNavigate()
   const { user } = useAuthUser()
   const { refresh, setActiveAliasId } = useAlias()
@@ -18,6 +22,9 @@ export default function JoinPage() {
   const [invite, setInvite] = useState<Invite | null>(null)
   const [resolving, setResolving] = useState(true)
   const [joining, setJoining] = useState(false)
+  // `failed` distinguishes a transient load failure (offer retry) from a code
+  // that genuinely resolved to no/expired invite ("not found").
+  const [failed, setFailed] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -28,8 +35,12 @@ export default function JoinPage() {
         if (!active) return
         if (!inv) setError('This invite link is invalid or has expired.')
         setInvite(inv)
+        setFailed(false)
       } catch {
-        if (active) setError('Could not load this invite.')
+        if (active) {
+          setError('Could not load this invite. Check your connection and try again.')
+          setFailed(true)
+        }
       } finally {
         if (active) setResolving(false)
       }
@@ -54,6 +65,24 @@ export default function JoinPage() {
     }
   }
 
+  const retry = () => {
+    setResolving(true)
+    setError(null)
+    setFailed(false)
+    // Re-run the resolve effect by re-reading the same code.
+    void resolveInvite(code)
+      .then((inv) => {
+        if (!inv) setError('This invite link is invalid or has expired.')
+        setInvite(inv)
+        setFailed(false)
+      })
+      .catch(() => {
+        setError('Could not load this invite. Check your connection and try again.')
+        setFailed(true)
+      })
+      .finally(() => setResolving(false))
+  }
+
   if (resolving) return <FullSpinner label="Loading invite" />
 
   return (
@@ -62,7 +91,28 @@ export default function JoinPage() {
         <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-xl2 bg-primary-100 text-primary-600">
           <UserPlus className="h-8 w-8" />
         </div>
-        {invite ? (
+        {failed ? (
+          <>
+            <h1 className="text-xl font-bold text-ink-900">
+              Couldn't load invite
+            </h1>
+            <p className="mt-2 text-sm text-ink-500">
+              {error ?? 'Something went wrong. Please try again.'}
+            </p>
+            <div className="mt-8 flex w-full gap-3">
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => navigate('/', { replace: true })}
+              >
+                Go to app
+              </Button>
+              <Button fullWidth onClick={retry}>
+                Try again
+              </Button>
+            </div>
+          </>
+        ) : invite ? (
           <>
             <h1 className="text-xl font-bold text-ink-900">
               Join “{invite.aliasName}”?

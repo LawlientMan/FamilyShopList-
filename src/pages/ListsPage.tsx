@@ -17,7 +17,7 @@ import type { ShoppingList } from '../types'
 // live items-remaining counts, a "New list" action, and rename/delete per list.
 // Tapping a list navigates to /lists/:listId (its items view).
 export default function ListsPage() {
-  const { activeAliasId } = useAlias()
+  const { activeAliasId, setSwitcherOpen } = useAlias()
   const { user } = useAuthUser()
   const { data: lists, loading } = useLists(activeAliasId)
 
@@ -34,8 +34,16 @@ export default function ListsPage() {
         <EmptyState
           icon={<ListTodo className="h-6 w-6" />}
           title="No space selected"
-          description="Create or join a space from the switcher at the top to start adding lists."
+          description="Create or join a space to start adding lists."
           className="flex-1"
+          action={
+            <Button
+              leftIcon={<Plus className="h-5 w-5" />}
+              onClick={() => setSwitcherOpen(true)}
+            >
+              Create a space
+            </Button>
+          }
         />
       </div>
     )
