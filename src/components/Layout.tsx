@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { ChevronDown, ListChecks, ListTodo, Gift, Menu, Zap } from 'lucide-react'
+import { ChevronDown, ListTodo, Gift, Menu, Zap } from 'lucide-react'
 import { useAlias } from '../alias/alias-context'
-import { Avatar, BottomSheet, EmptyState } from './ui'
+import { AliasSwitcher } from '../alias/AliasSwitcher'
+import { Avatar } from './ui'
 import { useAuthUser } from '../auth/auth-context'
 import { cn } from '../lib/cn'
 
@@ -16,7 +17,6 @@ const navItems = [
 export default function Layout() {
   const { activeAlias } = useAlias()
   const { user } = useAuthUser()
-  // Switcher is a stub for now — feature agents will fill the sheet content.
   const [switcherOpen, setSwitcherOpen] = useState(false)
 
   return (
@@ -80,18 +80,11 @@ export default function Layout() {
         </ul>
       </nav>
 
-      {/* Alias switcher (stub sheet — to be built by the alias feature agent) */}
-      <BottomSheet
+      {/* Alias switcher (FR-3/4/5/6) */}
+      <AliasSwitcher
         open={switcherOpen}
         onClose={() => setSwitcherOpen(false)}
-        title="Switch space"
-      >
-        <EmptyState
-          icon={<ListChecks className="h-6 w-6" />}
-          title="Space switcher coming soon"
-          description="Create, join, and switch between spaces will live here."
-        />
-      </BottomSheet>
+      />
     </div>
   )
 }

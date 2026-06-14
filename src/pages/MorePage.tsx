@@ -1,10 +1,11 @@
-import { LogOut, Users } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { Avatar, Button } from '../components/ui'
 import { useAuthUser } from '../auth/auth-context'
 import { useAlias } from '../alias/alias-context'
+import { MembersSection } from '../alias/MembersSection'
 
-// "More" screen — profile, members management entry point, sign out.
-// Member management UI (FR-7/8) is built by the alias feature agent.
+// "More" screen — profile, members management (FR-7/8/11), invites (FR-6),
+// and sign out.
 export default function MorePage() {
   const { user, logout } = useAuthUser()
   const { activeAlias } = useAlias()
@@ -24,14 +25,8 @@ export default function MorePage() {
       </div>
 
       {activeAlias && (
-        <div className="mt-4 rounded-card bg-white p-4 shadow-card">
-          <div className="flex items-center gap-2 text-ink-700">
-            <Users className="h-5 w-5 text-ink-400" />
-            <span className="text-sm">
-              Members of <span className="font-medium">{activeAlias.name}</span>{' '}
-              will appear here.
-            </span>
-          </div>
+        <div className="mt-4">
+          <MembersSection alias={activeAlias} />
         </div>
       )}
 

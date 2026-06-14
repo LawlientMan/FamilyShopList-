@@ -182,6 +182,40 @@ export async function removeMember(
   await updateDoc(paths.member(aliasId, uid), { status: 'removed' })
 }
 
+// Owner re-activates a previously removed member ("Invite back", FR-11). The
+// owner-update branch of the rule permits this; data + authorship were kept.
+export async function reactivateMember(
+  aliasId: string,
+  uid: string,
+): Promise<void> {
+  await updateDoc(paths.member(aliasId, uid), { status: 'active' })
+}
+
+// Owner rotates the invite code (FR-6 "Regenerate"). Writes the new lookup doc,
+// updates the alias, then deactivates the old invite so the old link/code no
+// longer joins. Returns the new code.
+export async function regenerateInvite(alias: Alias): Promise<string> {
+  const newCode = generateInviteCode()
+
+  // New code -> alias lookup (owner-gated by the invites rule via ownerId).
+  await setDoc(paths.invite(newCode), {
+    code: newCode,
+    aliasId: alias.id,
+    aliasName: alias.name,
+    active: true,
+  } satisfies Invite)
+
+  // Point the alias at the new code (the rule's get() now resolves it).
+  await updateDoc(paths.alias(alias.id), { inviteCode: newCode })
+
+  // Deactivate the previous invite so the old link/code stops working.
+  if (alias.inviteCode && alias.inviteCode !== newCode) {
+    await updateDoc(paths.invite(alias.inviteCode), { active: false })
+  }
+
+  return newCode
+}
+
 // ---- list my aliases (for the switcher, DATA-MODEL.md collectionGroup query) ----
 // collectionGroup('members') where uid == me and status == 'active', then load
 // each parent alias document.
