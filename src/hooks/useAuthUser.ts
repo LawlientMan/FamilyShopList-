@@ -1,7 +1,3 @@
-import { useAuthState } from 'react-firebase-hooks/auth'
-import { auth } from '../lib/firebase'
-
-// Thin wrapper around react-firebase-hooks so components import from one place.
-export function useAuthUser() {
-  return useAuthState(auth)
-}
+// Auth is provided by AuthProvider; the hook + context live in auth-context.
+// Re-exported here so existing imports from '../hooks/useAuthUser' keep working.
+export { useAuthUser } from '../auth/auth-context'

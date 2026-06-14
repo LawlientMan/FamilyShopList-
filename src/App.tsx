@@ -1,18 +1,52 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { AuthProvider } from './auth/AuthProvider'
+import { useAuthUser } from './auth/auth-context'
+import { AliasProvider } from './alias/AliasProvider'
+import SignIn from './auth/SignIn'
 import Layout from './components/Layout'
-import ShoppingListPage from './pages/ShoppingListPage'
-import WishlistPage from './pages/WishlistPage'
+import QuickListPage from './pages/QuickListPage'
+import ListsPage from './pages/ListsPage'
+import WishlistsPage from './pages/WishlistsPage'
+import MorePage from './pages/MorePage'
+import JoinPage from './pages/JoinPage'
+import { FullSpinner } from './components/ui'
+
+// Route protection: unauthenticated users see the SignIn screen (FR-1).
+function RequireAuth({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuthUser()
+  if (loading) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center">
+        <FullSpinner label="Loading" />
+      </div>
+    )
+  }
+  if (!user) return <SignIn />
+  return <>{children}</>
+}
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<ShoppingListPage />} />
-          <Route path="wishlist" element={<WishlistPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <RequireAuth>
+          <AliasProvider>
+            <Routes>
+              {/* Join-by-link sits outside the tabbed Layout. */}
+              <Route path="/join/:code" element={<JoinPage />} />
+              <Route path="/" element={<Layout />}>
+                <Route index element={<QuickListPage />} />
+                <Route path="lists" element={<ListsPage />} />
+                <Route path="wishlists" element={<WishlistsPage />} />
+                <Route path="more" element={<MorePage />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AliasProvider>
+        </RequireAuth>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 

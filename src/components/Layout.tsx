@@ -1,32 +1,97 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import { ChevronDown, ListChecks, ListTodo, Gift, Menu, Zap } from 'lucide-react'
+import { useAlias } from '../alias/alias-context'
+import { Avatar, BottomSheet, EmptyState } from './ui'
+import { useAuthUser } from '../auth/auth-context'
+import { cn } from '../lib/cn'
 
-const tabClass = ({ isActive }: { isActive: boolean }) =>
-  [
-    'flex-1 rounded-md px-4 py-2 text-center text-sm font-medium transition-colors',
-    isActive
-      ? 'bg-indigo-600 text-white'
-      : 'text-gray-600 hover:bg-gray-100',
-  ].join(' ')
+const navItems = [
+  { to: '/', label: 'Quick', icon: Zap, end: true },
+  { to: '/lists', label: 'Lists', icon: ListTodo, end: false },
+  { to: '/wishlists', label: 'Wishlists', icon: Gift, end: false },
+  { to: '/more', label: 'More', icon: Menu, end: false },
+]
 
 export default function Layout() {
+  const { activeAlias } = useAlias()
+  const { user } = useAuthUser()
+  // Switcher is a stub for now — feature agents will fill the sheet content.
+  const [switcherOpen, setSwitcherOpen] = useState(false)
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col bg-gray-50">
-      <header className="bg-indigo-600 px-4 py-4 text-white shadow">
-        <h1 className="text-lg font-bold">Family Shop</h1>
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-ink-100">
+      {/* Header: alias switcher trigger + profile avatar */}
+      <header className="sticky top-0 z-20 bg-white/90 px-4 pt-safe shadow-sm backdrop-blur">
+        <div className="flex h-14 items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setSwitcherOpen(true)}
+            className="flex items-center gap-1.5 rounded-card px-2 py-1.5 text-left hover:bg-ink-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+            aria-label="Switch space"
+          >
+            <span className="max-w-[60vw] truncate text-base font-semibold text-ink-900">
+              {activeAlias?.name ?? 'Family Shop'}
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-ink-400" />
+          </button>
+          <Avatar
+            name={user?.displayName}
+            photoURL={user?.photoURL}
+            size="sm"
+          />
+        </div>
       </header>
 
-      <nav className="flex gap-2 border-b border-gray-200 bg-white p-2">
-        <NavLink to="/" end className={tabClass}>
-          Покупки
-        </NavLink>
-        <NavLink to="/wishlist" className={tabClass}>
-          Вишлист
-        </NavLink>
-      </nav>
-
-      <main className="flex-1 p-4">
+      {/* Routed content */}
+      <main className="flex flex-1 flex-col px-4 py-4 pb-28">
         <Outlet />
       </main>
+
+      {/* Bottom navigation — safe-area aware (NFR-4) */}
+      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-ink-200 bg-white/95 px-2 pb-safe-nav pt-1.5 shadow-nav backdrop-blur">
+        <ul className="flex items-stretch justify-around">
+          {navItems.map(({ to, label, icon: Icon, end }) => (
+            <li key={to} className="flex-1">
+              <NavLink
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 rounded-card py-1.5 text-[11px] font-medium transition-colors',
+                    isActive
+                      ? 'text-primary-600'
+                      : 'text-ink-400 hover:text-ink-600',
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      className={cn('h-6 w-6', isActive && 'fill-primary-100')}
+                      aria-hidden
+                    />
+                    <span>{label}</span>
+                  </>
+                )}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      {/* Alias switcher (stub sheet — to be built by the alias feature agent) */}
+      <BottomSheet
+        open={switcherOpen}
+        onClose={() => setSwitcherOpen(false)}
+        title="Switch space"
+      >
+        <EmptyState
+          icon={<ListChecks className="h-6 w-6" />}
+          title="Space switcher coming soon"
+          description="Create, join, and switch between spaces will live here."
+        />
+      </BottomSheet>
     </div>
   )
 }

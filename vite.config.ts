@@ -13,7 +13,7 @@ export default defineConfig({
         name: 'Family Shop',
         short_name: 'FamilyShop',
         description: 'Family shopping list and wishlist',
-        theme_color: '#4f46e5',
+        theme_color: '#0d9488',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
