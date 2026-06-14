@@ -166,26 +166,32 @@ export function WishlistItemEditorSheet({
             Links
           </span>
           <div className="space-y-2">
-            {urls.map((url, i) => (
-              <div key={i} className="flex items-center gap-1">
-                <TextInput
-                  name={`url-${i}`}
-                  placeholder="https://…"
-                  inputMode="url"
-                  autoComplete="off"
-                  leftIcon={<Link2 className="h-4 w-4" />}
-                  value={url}
-                  onChange={(e) => setUrlAt(i, e.target.value)}
-                  onBlur={(e) => void tryPreview(e.target.value)}
-                />
-                <IconButton
-                  label="Remove link"
-                  size="sm"
-                  icon={<X className="h-4 w-4" />}
-                  onClick={() => removeUrlField(i)}
-                />
-              </div>
-            ))}
+            {urls.map((url, i) => {
+              // Hide remove on a lone empty field so the first add stays clean.
+              const showRemove = urls.length > 1 || url.trim() !== ''
+              return (
+                <div key={i} className="flex items-center gap-1">
+                  <TextInput
+                    name={`url-${i}`}
+                    placeholder="https://…"
+                    inputMode="url"
+                    autoComplete="off"
+                    leftIcon={<Link2 className="h-4 w-4" />}
+                    value={url}
+                    onChange={(e) => setUrlAt(i, e.target.value)}
+                    onBlur={(e) => void tryPreview(e.target.value)}
+                  />
+                  {showRemove && (
+                    <IconButton
+                      label="Remove link"
+                      size="sm"
+                      icon={<X className="h-4 w-4" />}
+                      onClick={() => removeUrlField(i)}
+                    />
+                  )}
+                </div>
+              )
+            })}
           </div>
           <button
             type="button"

@@ -1,7 +1,7 @@
 // Live count of items still to buy in a named list (FR-10.1 "items remaining").
 // Subscribes to the list's active items (done==false) and returns the count.
-// Uses the same single-field-with-orderBy query as the items view, so it shares
-// Firestore's automatic index — no extra index needed.
+// Uses the same equality + orderBy query as the items view, so it shares the
+// `items` composite index in firestore.indexes.json — no extra index needed.
 
 import { useMemo } from 'react'
 import { orderBy, query, where } from 'firebase/firestore'

@@ -3,7 +3,8 @@
 //
 // Active items (FR-B7): where done==false, ordered by updatedAt desc (newest top).
 // Bought items (FR-B8): where done==true, ordered by boughtAt desc.
-// These single-field-with-orderBy queries use Firestore's automatic indexes.
+// Equality + orderBy on a different field needs composite indexes — see the
+// quickItems / items entries in firestore.indexes.json.
 
 import { useMemo } from 'react'
 import { orderBy, query, where } from 'firebase/firestore'
