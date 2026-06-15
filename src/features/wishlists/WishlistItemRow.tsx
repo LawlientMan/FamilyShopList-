@@ -107,7 +107,7 @@ export function WishlistItemRow({
                       <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
                       <span className="truncate">{hostLabel(url)}</span>
                     </a>
-                    <CopyButton text={url} />
+                    <CopyButton text={url} className="h-8 w-8 shrink-0" />
                   </div>
                 ))}
             </div>
