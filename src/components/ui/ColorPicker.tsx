@@ -2,6 +2,7 @@
 // <input type="color"> for a custom RGB pick. The custom swatch shows the
 // current value and is highlighted when the value isn't one of the presets.
 
+import { Palette } from 'lucide-react'
 import { COLOR_PRESETS } from './iconSet'
 import { cn } from '../../lib/cn'
 
@@ -79,14 +80,17 @@ export function ColorPicker({
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
             aria-label="Custom color"
           />
-          {isPreset && (
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-0 flex items-center justify-center text-base"
-            >
-              🎨
+          {/* Always show the palette glyph (in a white chip so it reads on any
+              color) so the swatch stays recognizable as the custom-color picker
+              even after a custom color is chosen and tints the background. */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          >
+            <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-white/90 shadow-sm ring-1 ring-black/5">
+              <Palette className="h-3 w-3 text-ink-700" />
             </span>
-          )}
+          </span>
         </label>
       </div>
     </div>
