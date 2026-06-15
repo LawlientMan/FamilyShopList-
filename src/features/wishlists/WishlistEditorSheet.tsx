@@ -77,7 +77,7 @@ export function WishlistEditorSheet({
     <BottomSheet
       open={open}
       onClose={onClose}
-      title={mode === 'create' ? 'New wishlist' : 'Rename wishlist'}
+      title={mode === 'create' ? 'New wishlist' : 'Edit wishlist'}
     >
       <div className="space-y-4">
         <TextInput

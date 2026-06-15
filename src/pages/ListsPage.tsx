@@ -143,7 +143,7 @@ export default function ListsPage() {
               setActionsFor(null)
             }}
           >
-            Rename
+            Edit
           </Button>
           <Button
             fullWidth

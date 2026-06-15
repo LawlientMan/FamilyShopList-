@@ -33,8 +33,10 @@ export function ItemImage({
     <div
       className={cn(
         'flex items-center justify-center overflow-hidden rounded-card bg-ink-100',
-        'aspect-[4/3] w-full',
-        className,
+        // `cn` is a plain joiner (no tailwind-merge), so a caller's size classes
+        // would otherwise CONFLICT with these defaults (e.g. w-16 vs w-full). Only
+        // apply the default size when the caller doesn't pass its own.
+        className ?? 'aspect-[4/3] w-full',
       )}
     >
       {showPlaceholder ? (

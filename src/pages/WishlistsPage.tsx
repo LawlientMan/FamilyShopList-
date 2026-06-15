@@ -147,7 +147,7 @@ export default function WishlistsPage() {
               setActionsFor(null)
             }}
           >
-            Rename
+            Edit
           </Button>
           <Button
             fullWidth

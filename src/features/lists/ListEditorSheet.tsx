@@ -75,7 +75,7 @@ export function ListEditorSheet({
     <BottomSheet
       open={open}
       onClose={onClose}
-      title={mode === 'create' ? 'New list' : 'Rename list'}
+      title={mode === 'create' ? 'New list' : 'Edit list'}
     >
       <div className="space-y-4">
         <TextInput

@@ -164,15 +164,17 @@ export function WishlistItemEditorSheet({
               const showRemove = urls.length > 1 || url.trim() !== ''
               return (
                 <div key={i} className="flex items-center gap-1">
-                  <TextInput
-                    name={`url-${i}`}
-                    placeholder="https://…"
-                    inputMode="url"
-                    autoComplete="off"
-                    leftIcon={<Link2 className="h-4 w-4" />}
-                    value={url}
-                    onChange={(e) => setUrlAt(i, e.target.value)}
-                  />
+                  <div className="min-w-0 flex-1">
+                    <TextInput
+                      name={`url-${i}`}
+                      placeholder="https://…"
+                      inputMode="url"
+                      autoComplete="off"
+                      leftIcon={<Link2 className="h-4 w-4" />}
+                      value={url}
+                      onChange={(e) => setUrlAt(i, e.target.value)}
+                    />
+                  </div>
                   {showRemove && (
                     <IconButton
                       label="Remove link"
@@ -205,7 +207,9 @@ export function WishlistItemEditorSheet({
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
           />
-          <ItemImage src={imageUrl} alt={name} className="mt-2" />
+          <div className="mt-2">
+            <ItemImage src={imageUrl} alt={name} />
+          </div>
         </div>
 
         <div className="flex gap-2">
