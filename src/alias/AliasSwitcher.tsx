@@ -1,9 +1,21 @@
 import { useEffect, useState } from 'react'
-import { Check, LogIn, Plus, Star } from 'lucide-react'
-import { BottomSheet, Button, IconButton, TextInput } from '../components/ui'
+import { Check, LogIn, Pencil, Plus, Star, Trash2 } from 'lucide-react'
+import {
+  BottomSheet,
+  Button,
+  ConfirmDialog,
+  IconButton,
+  TextInput,
+} from '../components/ui'
 import { useAuthUser } from '../auth/auth-context'
 import { useAlias } from './alias-context'
-import { getUser, createAlias, joinByCode } from '../lib/db'
+import {
+  getUser,
+  createAlias,
+  deleteAlias,
+  joinByCode,
+  renameAlias,
+} from '../lib/db'
 import { cn } from '../lib/cn'
 import type { Alias } from '../types'
 
@@ -28,6 +40,38 @@ export function AliasSwitcher({
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Owner CRUD on a space (FR-13).
+  const [renameTarget, setRenameTarget] = useState<Alias | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<Alias | null>(null)
+  const [crudBusy, setCrudBusy] = useState(false)
+
+  const handleRename = async () => {
+    if (!renameTarget || !renameValue.trim() || crudBusy) return
+    setCrudBusy(true)
+    try {
+      await renameAlias(renameTarget, renameValue.trim())
+      await refresh()
+      setRenameTarget(null)
+    } finally {
+      setCrudBusy(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deleteTarget || crudBusy) return
+    setCrudBusy(true)
+    try {
+      await deleteAlias(deleteTarget)
+      // Drop it locally and let refresh re-pick an active alias (provider falls
+      // back to default/first remaining membership).
+      await refresh()
+      setDeleteTarget(null)
+    } finally {
+      setCrudBusy(false)
+    }
+  }
 
   // Load the persisted launch-default (FR-5) whenever the sheet opens.
   useEffect(() => {
@@ -100,6 +144,7 @@ export function AliasSwitcher({
         : 'Switch space'
 
   return (
+    <>
     <BottomSheet open={open} onClose={close} title={title}>
       {mode === 'list' && (
         <div className="flex flex-col">
@@ -110,8 +155,14 @@ export function AliasSwitcher({
                 alias={a}
                 active={a.id === activeAliasId}
                 isDefault={a.id === defaultAliasId}
+                isOwner={a.ownerId === user?.uid}
                 onSelect={() => handleSwitch(a.id)}
                 onMakeDefault={() => void handleMakeDefault(a.id)}
+                onRename={() => {
+                  setRenameValue(a.name)
+                  setRenameTarget(a)
+                }}
+                onDelete={() => setDeleteTarget(a)}
               />
             ))}
           </ul>
@@ -208,6 +259,62 @@ export function AliasSwitcher({
         </div>
       )}
     </BottomSheet>
+
+    {/* Owner: rename a space (FR-13) */}
+    <BottomSheet
+      open={renameTarget !== null}
+      onClose={() => setRenameTarget(null)}
+      title="Rename space"
+    >
+      <div className="space-y-4">
+        <TextInput
+          name="rename-space"
+          label="Space name"
+          placeholder="Family, Personal, Cottage…"
+          autoComplete="off"
+          autoFocus
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              void handleRename()
+            }
+          }}
+        />
+        <div className="flex gap-3">
+          <Button
+            variant="secondary"
+            fullWidth
+            onClick={() => setRenameTarget(null)}
+            disabled={crudBusy}
+          >
+            Cancel
+          </Button>
+          <Button
+            fullWidth
+            loading={crudBusy}
+            disabled={!renameValue.trim()}
+            onClick={() => void handleRename()}
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+    </BottomSheet>
+
+    {/* Owner: delete a space (FR-13) */}
+    <ConfirmDialog
+      open={deleteTarget !== null}
+      title="Delete space?"
+      message={`"${deleteTarget?.name ?? 'This space'}" and its membership will be removed for everyone. This can't be undone.`}
+      confirmLabel="Delete"
+      destructive
+      loading={crudBusy}
+      onConfirm={() => void handleDelete()}
+      onCancel={() => setDeleteTarget(null)}
+    />
+    </>
   )
 }
 
@@ -215,17 +322,23 @@ function AliasRow({
   alias,
   active,
   isDefault,
+  isOwner,
   onSelect,
   onMakeDefault,
+  onRename,
+  onDelete,
 }: {
   alias: Alias
   active: boolean
   isDefault: boolean
+  isOwner: boolean
   onSelect: () => void
   onMakeDefault: () => void
+  onRename: () => void
+  onDelete: () => void
 }) {
   return (
-    <li className="flex items-center gap-1">
+    <li className="flex items-center gap-0.5">
       <button
         type="button"
         onClick={onSelect}
@@ -246,6 +359,7 @@ function AliasRow({
       </button>
       <IconButton
         label={isDefault ? 'Default space' : 'Set as default'}
+        size="sm"
         icon={
           <Star
             className={cn(
@@ -256,6 +370,25 @@ function AliasRow({
         }
         onClick={onMakeDefault}
       />
+      {/* Owner CRUD (FR-13) */}
+      {isOwner && (
+        <>
+          <IconButton
+            label={`Rename ${alias.name}`}
+            size="sm"
+            icon={<Pencil className="h-4 w-4" />}
+            onClick={onRename}
+            className="text-ink-400"
+          />
+          <IconButton
+            label={`Delete ${alias.name}`}
+            size="sm"
+            icon={<Trash2 className="h-4 w-4" />}
+            onClick={onDelete}
+            className="text-ink-400"
+          />
+        </>
+      )}
     </li>
   )
 }

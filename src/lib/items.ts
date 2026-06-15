@@ -95,6 +95,24 @@ export async function deleteItem(
   await deleteDoc(doc(itemsRef, itemId))
 }
 
+// Edit an existing item's content (FR-13): name / qty / unit. authorId and
+// createdAt are NOT touched — the content update rule (authorFrozen) freezes the
+// author snapshot, so we only change name/nameLower/qty/unit/updatedAt.
+export async function editItem(
+  itemsRef: CollectionReference<DocumentData>,
+  itemId: string,
+  input: ShoppingItemInput,
+): Promise<void> {
+  const name = input.name.trim()
+  await updateDoc(doc(itemsRef, itemId), {
+    name,
+    nameLower: normalizeName(name),
+    qty: input.qty ?? null,
+    unit: input.unit ?? '',
+    updatedAt: serverTimestamp(),
+  })
+}
+
 // Record a name in the autocomplete history for this alias (FR-B2). Keyed by
 // nameLower as the document id so repeats just bump the count.
 //
@@ -110,6 +128,8 @@ export async function recordSuggestion(
   const nameLower = normalizeName(name)
   if (!nameLower) return
   // nameLower is the doc id, so repeats hit the same document.
+  // IMPORTANT (FR-B2.1): never write `hidden` here. setDoc(merge) leaves an
+  // existing hidden:true intact, so re-adding a blocked item does NOT revive it.
   const ref = doc(paths.suggestions(aliasId), nameLower)
   await setDoc(
     ref,
@@ -121,4 +141,37 @@ export async function recordSuggestion(
     },
     { merge: true },
   )
+}
+
+// ---- suggestion management (FR-B2.1 / FR-B2.2 / FR-13) ----
+
+// Block a suggestion forever (set hidden:true). Autocomplete filters it out and
+// recordSuggestion never clears the flag, so re-adding the item won't revive it.
+export async function blockSuggestion(
+  aliasId: string,
+  id: string,
+): Promise<void> {
+  await updateDoc(doc(paths.suggestions(aliasId), id), { hidden: true })
+}
+
+// Rename a suggestion (FR-B2.2). The doc id stays the original nameLower (so the
+// dedup key for items added via recordSuggestion is unaffected); we update the
+// displayed name and its nameLower used for prefix matching.
+export async function renameSuggestion(
+  aliasId: string,
+  id: string,
+  name: string,
+): Promise<void> {
+  const trimmed = name.trim()
+  await updateDoc(doc(paths.suggestions(aliasId), id), {
+    name: trimmed,
+    nameLower: normalizeName(trimmed),
+  })
+}
+
+export async function deleteSuggestion(
+  aliasId: string,
+  id: string,
+): Promise<void> {
+  await deleteDoc(doc(paths.suggestions(aliasId), id))
 }

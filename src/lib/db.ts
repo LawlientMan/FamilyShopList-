@@ -263,6 +263,45 @@ export async function deleteList(
   await deleteDoc(doc(paths.lists(aliasId), listId))
 }
 
+// ---- alias rename / delete (FR-13, owner-only per rules) ----
+
+// Rename the active alias (rule allows owner update of aliases/{id}). Best-effort
+// keeps the current invite's aliasName roughly in sync so the "Join {alias}?"
+// confirmation shows the new name; a failure there is non-critical.
+export async function renameAlias(alias: Alias, name: string): Promise<void> {
+  const trimmed = name.trim()
+  await updateDoc(paths.alias(alias.id), { name: trimmed })
+  if (alias.inviteCode) {
+    void updateDoc(paths.invite(alias.inviteCode), {
+      aliasName: trimmed,
+    }).catch(() => {})
+  }
+}
+
+// Delete an alias (owner-only). Spark has no server cascade, so we do a small,
+// safe client-side cleanup: remove the member docs and the current invite, then
+// the alias document itself. Larger content subcollections (items, suggestions,
+// wishlists) may remain orphaned and unreachable — acceptable for a family app.
+// Member docs are deleted last-but-before the alias so the owner still passes
+// isOwner() (which reads the alias doc) while removing them.
+export async function deleteAlias(alias: Alias): Promise<void> {
+  // 1) deactivate the current invite (owner-gated UPDATE — the invites rule
+  //    checks isOwner via request.resource.data.aliasId, which a delete lacks,
+  //    so we flip active:false instead of deleting the lookup doc).
+  if (alias.inviteCode) {
+    await updateDoc(paths.invite(alias.inviteCode), { active: false }).catch(
+      () => {},
+    )
+  }
+  // 2) delete member docs (owner-only delete per rules). These are read via
+  //    the nested members rule (isActiveMember) — the owner is active here.
+  const members = await getDocs(paths.members(alias.id))
+  await Promise.all(members.docs.map((d) => deleteDoc(d.ref).catch(() => {})))
+  // 3) delete the alias document (owner-only). Content subcollections (items,
+  //    suggestions, wishlists) may remain orphaned/unreachable — acceptable.
+  await deleteDoc(paths.alias(alias.id))
+}
+
 // ---- list my aliases (for the switcher, DATA-MODEL.md collectionGroup query) ----
 // collectionGroup('members') where uid == me and status == 'active', then load
 // each parent alias document.

@@ -16,9 +16,11 @@ import { ShoppingItemRow } from './ShoppingItemRow'
 export interface BoughtSectionProps {
   itemsRef: CollectionReference<DocumentData>
   items: ShoppingItem[]
+  /** Open the edit screen for a bought item (FR-13). */
+  onEdit?: (item: ShoppingItem) => void
 }
 
-export function BoughtSection({ itemsRef, items }: BoughtSectionProps) {
+export function BoughtSection({ itemsRef, items, onEdit }: BoughtSectionProps) {
   const [expanded, setExpanded] = useState(false)
   const [clearing, setClearing] = useState(false)
 
@@ -57,7 +59,12 @@ export function BoughtSection({ itemsRef, items }: BoughtSectionProps) {
       {expanded && (
         <div className="space-y-2">
           {items.map((item) => (
-            <ShoppingItemRow key={item.id} itemsRef={itemsRef} item={item} />
+            <ShoppingItemRow
+              key={item.id}
+              itemsRef={itemsRef}
+              item={item}
+              onEdit={onEdit}
+            />
           ))}
           <Button
             variant="ghost"

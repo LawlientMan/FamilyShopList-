@@ -3,6 +3,7 @@
 // FR-B5: checking moves the item to the Bought section (sets boughtAt).
 // FR-B6: unchecking a bought item restores it to the active list.
 // FR-B9: shows the author's avatar (snapshot taken at add time).
+// FR-13: tapping the row body opens edit; a trash button deletes.
 
 import { useState } from 'react'
 import { Check, Trash2 } from 'lucide-react'
@@ -15,6 +16,8 @@ import type { ShoppingItem } from '../../types'
 export interface ShoppingItemRowProps {
   itemsRef: CollectionReference<DocumentData>
   item: ShoppingItem
+  /** Open the edit screen for this item (FR-13). */
+  onEdit?: (item: ShoppingItem) => void
 }
 
 function quantityLabel(item: ShoppingItem): string | null {
@@ -24,7 +27,11 @@ function quantityLabel(item: ShoppingItem): string | null {
   return parts.length ? parts.join(' ') : null
 }
 
-export function ShoppingItemRow({ itemsRef, item }: ShoppingItemRowProps) {
+export function ShoppingItemRow({
+  itemsRef,
+  item,
+  onEdit,
+}: ShoppingItemRowProps) {
   const [busy, setBusy] = useState(false)
 
   async function toggle() {
@@ -74,19 +81,36 @@ export function ShoppingItemRow({ itemsRef, item }: ShoppingItemRowProps) {
         <Check className="h-5 w-5" aria-hidden />
       </button>
 
-      <div className="min-w-0 flex-1">
-        <p
-          className={cn(
-            'truncate text-sm font-medium',
-            item.done ? 'text-ink-400 line-through' : 'text-ink-900',
-          )}
+      {onEdit ? (
+        <button
+          type="button"
+          onClick={() => onEdit(item)}
+          className="min-w-0 flex-1 rounded-card px-1 py-0.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+          aria-label={`Edit ${item.name}`}
         >
-          {item.name}
-        </p>
-        {qty && (
-          <p className="text-xs text-ink-500">{qty}</p>
-        )}
-      </div>
+          <p
+            className={cn(
+              'truncate text-sm font-medium',
+              item.done ? 'text-ink-400 line-through' : 'text-ink-900',
+            )}
+          >
+            {item.name}
+          </p>
+          {qty && <p className="text-xs text-ink-500">{qty}</p>}
+        </button>
+      ) : (
+        <div className="min-w-0 flex-1">
+          <p
+            className={cn(
+              'truncate text-sm font-medium',
+              item.done ? 'text-ink-400 line-through' : 'text-ink-900',
+            )}
+          >
+            {item.name}
+          </p>
+          {qty && <p className="text-xs text-ink-500">{qty}</p>}
+        </div>
+      )}
 
       {/* Author avatar (FR-B9) */}
       <Avatar name={item.authorName} photoURL={item.authorPhoto} size="xs" />

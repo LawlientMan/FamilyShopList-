@@ -6,8 +6,8 @@
 
 export { ShoppingItemsView } from './ShoppingItemsView'
 export type { ShoppingItemsViewProps } from './ShoppingItemsView'
-export { AddItemForm } from './AddItemForm'
-export type { AddItemFormProps } from './AddItemForm'
+export { AddItemScreen } from './AddItemScreen'
+export type { AddItemScreenProps } from './AddItemScreen'
 export { ShoppingItemRow } from './ShoppingItemRow'
 export type { ShoppingItemRowProps } from './ShoppingItemRow'
 export { BoughtSection } from './BoughtSection'
