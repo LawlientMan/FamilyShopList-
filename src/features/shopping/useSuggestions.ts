@@ -2,6 +2,10 @@
 // Prefix query on `nameLower` against aliases/{aliasId}/suggestions. Returns the
 // best matches (most-used first) for the current input. Debounced + cancellable.
 //
+// LIVE subscription (onSnapshot): deletes/renames and a partner's newly recorded
+// suggestions reflect immediately in the in-screen list — matching the Manage
+// tab. (A one-shot getDocs left the in-screen list stale after a delete.)
+//
 // FR-B2.1: deleting a suggestion hard-deletes the document, so there is no
 // hidden/blocked concept to filter — the prefix query stays on Firestore's auto
 // single-field nameLower index.
@@ -9,7 +13,7 @@
 // so the persistent in-screen list shows everything by default.
 
 import { useEffect, useState } from 'react'
-import { getDocs, limit, orderBy, query, where } from 'firebase/firestore'
+import { limit, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { paths } from '../../lib/db'
 import { normalizeName } from '../../lib/items'
 import type { Suggestion } from '../../types'
@@ -29,52 +33,46 @@ export function useSuggestions(
   const prefix = normalizeName(term)
 
   useEffect(() => {
-    let cancelled = false
-
     if (!aliasId) {
-      const id = setTimeout(() => {
-        if (!cancelled) setResults([])
-      }, 0)
-      return () => {
-        cancelled = true
-        clearTimeout(id)
-      }
+      const id = setTimeout(() => setResults([]), 0)
+      return () => clearTimeout(id)
     }
 
-    const handle = setTimeout(async () => {
-      try {
-        // Empty prefix -> list all (ordered by name); otherwise prefix range:
-        // nameLower in [prefix, prefix + high-codepoint]. Both stay on the auto
-        // single-field nameLower index. Usage-count ranking is applied below.
-        const q =
-          prefix.length === 0
-            ? query(
-                paths.suggestions(aliasId),
-                orderBy('nameLower'),
-                limit(MAX_SUGGESTIONS * 4),
-              )
-            : query(
-                paths.suggestions(aliasId),
-                where('nameLower', '>=', prefix),
-                where('nameLower', '<=', prefix + PREFIX_END),
-                orderBy('nameLower'),
-                limit(MAX_SUGGESTIONS * 4),
-              )
-        const snap = await getDocs(q)
-        if (cancelled) return
-        const data = snap.docs.map(
-          (d) => ({ id: d.id, ...d.data() }) as Suggestion,
-        )
-        data.sort((a, b) => b.count - a.count)
-        setResults(data.slice(0, MAX_SUGGESTIONS))
-      } catch {
-        if (!cancelled) setResults([])
-      }
+    let unsub: (() => void) | undefined
+    const handle = setTimeout(() => {
+      // Empty prefix -> list all (ordered by name); otherwise prefix range:
+      // nameLower in [prefix, prefix + high-codepoint]. Both stay on the auto
+      // single-field nameLower index. Usage-count ranking is applied below.
+      const q =
+        prefix.length === 0
+          ? query(
+              paths.suggestions(aliasId),
+              orderBy('nameLower'),
+              limit(MAX_SUGGESTIONS * 4),
+            )
+          : query(
+              paths.suggestions(aliasId),
+              where('nameLower', '>=', prefix),
+              where('nameLower', '<=', prefix + PREFIX_END),
+              orderBy('nameLower'),
+              limit(MAX_SUGGESTIONS * 4),
+            )
+      unsub = onSnapshot(
+        q,
+        (snap) => {
+          const data = snap.docs.map(
+            (d) => ({ id: d.id, ...d.data() }) as Suggestion,
+          )
+          data.sort((a, b) => b.count - a.count)
+          setResults(data.slice(0, MAX_SUGGESTIONS))
+        },
+        () => setResults([]),
+      )
     }, DEBOUNCE_MS)
 
     return () => {
-      cancelled = true
       clearTimeout(handle)
+      unsub?.()
     }
   }, [aliasId, prefix])
 
