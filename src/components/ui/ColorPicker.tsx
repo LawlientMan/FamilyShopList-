@@ -11,6 +11,13 @@ export interface ColorPickerProps {
   label?: string
 }
 
+// Seed value for the native picker when no custom color is active yet: a light
+// color (so the saturation/value area opens bright, not black) with a hue around
+// the middle-right of the spectrum (sky-blue). The native OS picker positions its
+// sliders from this hex, so this keeps it usable instead of opening on black.
+const CUSTOM_SEED = '#7dd3fc'
+const isHex6 = (v: string) => /^#[0-9a-f]{6}$/i.test(v)
+
 export function ColorPicker({
   value,
   onChange,
@@ -18,6 +25,9 @@ export function ColorPicker({
 }: ColorPickerProps) {
   const normalized = value.toLowerCase()
   const isPreset = COLOR_PRESETS.some((c) => c.toLowerCase() === normalized)
+  // What the native <input type="color"> opens at: the current custom color if
+  // one is set, otherwise the light seed (never empty/invalid → never black).
+  const customValue = !isPreset && isHex6(value) ? value : CUSTOM_SEED
 
   return (
     <div>
@@ -64,7 +74,7 @@ export function ColorPicker({
         >
           <input
             type="color"
-            value={value}
+            value={customValue}
             onChange={(e) => onChange(e.target.value)}
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
             aria-label="Custom color"

@@ -6,7 +6,13 @@
 import { useState } from 'react'
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import type { CollectionReference, DocumentData } from 'firebase/firestore'
-import { Avatar, Badge, IconButton, ItemImage } from '../../components/ui'
+import {
+  Avatar,
+  Badge,
+  ConfirmDialog,
+  IconButton,
+  ItemImage,
+} from '../../components/ui'
 import { deleteWishlistItem } from '../../lib/wishlists'
 import type { Priority, WishlistItem } from '../../types'
 
@@ -42,12 +48,14 @@ export function WishlistItemRow({
   onEdit,
 }: WishlistItemRowProps) {
   const [busy, setBusy] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   async function remove() {
     if (busy) return
     setBusy(true)
     try {
       await deleteWishlistItem(itemsRef, item.id)
+      setConfirmOpen(false)
     } finally {
       setBusy(false)
     }
@@ -116,11 +124,22 @@ export function WishlistItemRow({
             label="Delete item"
             size="sm"
             icon={<Trash2 className="h-4 w-4" />}
-            onClick={() => void remove()}
+            onClick={() => setConfirmOpen(true)}
             disabled={busy}
           />
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete item?"
+        message={`"${item.name}" will be removed from this wishlist.`}
+        confirmLabel="Delete"
+        destructive
+        loading={busy}
+        onConfirm={() => void remove()}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   )
 }

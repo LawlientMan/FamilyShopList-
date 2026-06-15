@@ -9,6 +9,7 @@ import type { WishlistItemInput } from '../lib/wishlists'
 import {
   Button,
   EmptyState,
+  Fab,
   FullSpinner,
   IconBadge,
   IconButton,
@@ -76,15 +77,6 @@ export default function WishlistDetailPage() {
         <h1 className="min-w-0 flex-1 truncate text-xl font-bold text-ink-900">
           {wishlist?.name ?? 'Wishlist'}
         </h1>
-        {activeAliasId && user && items.length > 0 && (
-          <Button
-            size="sm"
-            leftIcon={<Plus className="h-4 w-4" />}
-            onClick={() => setAdding(true)}
-          >
-            Add item
-          </Button>
-        )}
       </div>
 
       {!activeAliasId || !user || !itemsRef ? (
@@ -131,6 +123,11 @@ export default function WishlistDetailPage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* FR-17-style: floating add button bottom-right */}
+      {activeAliasId && user && itemsRef && (
+        <Fab label="Add item" onClick={() => setAdding(true)} />
       )}
 
       {/* Add */}
