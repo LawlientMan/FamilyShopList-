@@ -101,7 +101,4 @@ export interface Suggestion {
   nameLower: string
   count: number
   lastUsedAt: Timestamp
-  // v1.1: blocked -> never suggested again. recordSuggestion never clears it;
-  // autocomplete filters hidden client-side (FR-B2.1).
-  hidden?: boolean
 }

@@ -19,7 +19,7 @@ export function Fab({ label, icon, className, ...props }: FabProps) {
         aria-label={label}
         title={label}
         className={cn(
-          'pointer-events-auto absolute bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg shadow-primary-600/30 transition-colors hover:bg-primary-700 active:bg-primary-800',
+          'pointer-events-auto absolute bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg shadow-primary-600/30 transition-colors hover:bg-primary-700 active:bg-primary-800',
           'right-[max(1rem,env(safe-area-inset-right))]',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2',
           className,

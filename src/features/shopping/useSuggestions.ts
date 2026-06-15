@@ -2,9 +2,9 @@
 // Prefix query on `nameLower` against aliases/{aliasId}/suggestions. Returns the
 // best matches (most-used first) for the current input. Debounced + cancellable.
 //
-// FR-B2.1: hidden (blocked) suggestions are filtered out CLIENT-SIDE — adding an
-// inequality on `hidden` would break the prefix range and force a composite
-// index. The prefix query stays on Firestore's auto single-field nameLower index.
+// FR-B2.1: deleting a suggestion hard-deletes the document, so there is no
+// hidden/blocked concept to filter — the prefix query stays on Firestore's auto
+// single-field nameLower index.
 // FR-B2.3: when the term is empty we still return suggestions (most-used first)
 // so the persistent in-screen list shows everything by default.
 
@@ -20,7 +20,7 @@ const DEBOUNCE_MS = 150
 const PREFIX_END = String.fromCharCode(0xf8ff)
 
 // `term` is the raw text typed into the name field. Pass aliasId (or null to
-// disable). Returns matching, non-hidden suggestions ordered by usage count.
+// disable). Returns matching suggestions ordered by usage count.
 export function useSuggestions(
   aliasId: string | null,
   term: string,
@@ -62,10 +62,9 @@ export function useSuggestions(
               )
         const snap = await getDocs(q)
         if (cancelled) return
-        const data = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }) as Suggestion)
-          // FR-B2.1: drop blocked suggestions client-side.
-          .filter((s) => !s.hidden)
+        const data = snap.docs.map(
+          (d) => ({ id: d.id, ...d.data() }) as Suggestion,
+        )
         data.sort((a, b) => b.count - a.count)
         setResults(data.slice(0, MAX_SUGGESTIONS))
       } catch {

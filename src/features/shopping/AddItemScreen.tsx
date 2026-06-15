@@ -6,14 +6,14 @@
 // Contents:
 //  - Name input (autofocused on open) with a PERSISTENT suggestion list below
 //    (FR-B2/B2.3): tapping fills the name and does NOT close; clicking elsewhere
-//    does NOT hide it. Each row can be blocked / renamed / deleted (FR-B2.1/13).
+//    does NOT hide it. Each row can be renamed / deleted (FR-B2.1/13).
 //  - Optional quantity (NumberStepper) + optional free-text unit with colored
 //    quick-pick chips g / kg / l / ml (FR-B3).
-//  - A "Manage suggestions" tab listing ALL suggestions with rename/delete/block.
+//  - A "Manage suggestions" tab listing ALL suggestions with rename/delete.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { query } from 'firebase/firestore'
-import { Ban, Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react'
+import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react'
 import type { CollectionReference, DocumentData } from 'firebase/firestore'
 import type { User as FirebaseUser } from 'firebase/auth'
 import { createPortal } from 'react-dom'
@@ -32,7 +32,7 @@ import { useCollection } from '../../hooks/useCollection'
 import { paths } from '../../lib/db'
 import {
   addOrUpdateItem,
-  blockSuggestion,
+  deleteSuggestion,
   editItem as editItemDoc,
   recordSuggestion,
   renameSuggestion,
@@ -120,6 +120,29 @@ export function AddItemScreen({
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prev
+    }
+  }, [open, onClose])
+
+  // Back gesture / hardware Back closes the screen instead of navigating the
+  // router away from the current page. On open we push a throwaway history
+  // entry; a real Back press pops it and fires popstate -> onClose(). When the
+  // screen is closed from the UI (X / Save / Cancel / backdrop) the cleanup
+  // pops our entry once so history stays balanced (no leaked entries across
+  // repeated open/close). `poppedRef` tracks whether popstate already consumed
+  // the entry, so we never double-pop.
+  useEffect(() => {
+    if (!open) return
+    let poppedRef = false
+    window.history.pushState({ addItem: true }, '')
+    const onPop = () => {
+      poppedRef = true
+      onClose()
+    }
+    window.addEventListener('popstate', onPop)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      // UI-driven close: our pushed entry is still on top, so pop it once.
+      if (!poppedRef) window.history.back()
     }
   }, [open, onClose])
 
@@ -348,8 +371,8 @@ function AddTab({
 }
 
 // Persistent suggestion list used inside the Add tab. Tapping a row fills the
-// name; the trailing button is "Don't suggest again" — a SOFT delete via the
-// hidden flag (FR-B2.1). There is no hard document deletion.
+// name; the trailing button deletes the suggestion (FR-B2.1) — a hard delete.
+// Re-adding an item with that name later recreates the suggestion.
 function SuggestionList({
   aliasId,
   suggestions,
@@ -369,11 +392,11 @@ function SuggestionList({
     )
   }
 
-  async function block(s: Suggestion) {
+  async function remove(s: Suggestion) {
     if (busyId) return
     setBusyId(s.id)
     try {
-      await blockSuggestion(aliasId, s.id)
+      await deleteSuggestion(aliasId, s.id)
     } finally {
       setBusyId(null)
     }
@@ -391,12 +414,12 @@ function SuggestionList({
             <span className="truncate">{s.name}</span>
           </button>
           <IconButton
-            label={`Don't suggest "${s.name}" again`}
+            label={`Delete "${s.name}"`}
             size="sm"
             variant="ghost"
-            icon={<Ban className="h-4 w-4" />}
+            icon={<Trash2 className="h-4 w-4" />}
             disabled={busyId === s.id}
-            onClick={() => void block(s)}
+            onClick={() => void remove(s)}
             className="mr-1 text-ink-400"
           />
         </li>
@@ -406,19 +429,16 @@ function SuggestionList({
 }
 
 // ---- Manage suggestions tab (FR-B2.2 / FR-13) ----
-// Lists the alias's suggestions with rename + delete. Delete is SOFT (sets the
-// hidden flag, FR-B2.1) — deleted suggestions simply drop out of the list and
-// are never suggested or revived again. There is no hard document deletion.
+// Lists the alias's suggestions with rename + delete. Delete is a plain hard
+// delete (FR-B2.1) — the suggestion is removed, but re-adding an item with that
+// name later recreates it.
 function ManageTab({ aliasId }: { aliasId: string }) {
   const q = useMemo(() => query(paths.suggestions(aliasId)), [aliasId])
   const { data: all, loading } = useCollection<Suggestion>(q)
 
-  // Only non-deleted suggestions are shown, alphabetical.
+  // Alphabetical.
   const visible = useMemo(
-    () =>
-      all
-        .filter((s) => !s.hidden)
-        .sort((a, b) => a.nameLower.localeCompare(b.nameLower)),
+    () => [...all].sort((a, b) => a.nameLower.localeCompare(b.nameLower)),
     [all],
   )
 
@@ -456,13 +476,13 @@ function ManageTab({ aliasId }: { aliasId: string }) {
     }
   }
 
-  // Soft delete (FR-B2.1): set the hidden flag — never suggested again, and
-  // re-adding the item won't revive it (recordSuggestion never clears hidden).
+  // Hard delete (FR-B2.1): remove the document. Re-adding an item with this
+  // name later recreates the suggestion (recordSuggestion uses setDoc merge).
   async function confirmDelete() {
     if (!deleteTarget || working) return
     setWorking(true)
     try {
-      await blockSuggestion(aliasId, deleteTarget.id)
+      await deleteSuggestion(aliasId, deleteTarget.id)
       setDeleteTarget(null)
     } finally {
       setWorking(false)
@@ -515,7 +535,7 @@ function ManageTab({ aliasId }: { aliasId: string }) {
       <ConfirmDialog
         open={deleteTarget !== null}
         title="Delete suggestion?"
-        message={`"${deleteTarget?.name ?? ''}" won't be suggested again. Re-adding the item later won't bring it back.`}
+        message={`"${deleteTarget?.name ?? ''}" will be removed from suggestions. Adding an item with this name again will bring it back.`}
         confirmLabel="Delete"
         destructive
         loading={working}

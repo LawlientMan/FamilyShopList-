@@ -127,9 +127,9 @@ export async function recordSuggestion(
 ): Promise<void> {
   const nameLower = normalizeName(name)
   if (!nameLower) return
-  // nameLower is the doc id, so repeats hit the same document.
-  // IMPORTANT (FR-B2.1): never write `hidden` here. setDoc(merge) leaves an
-  // existing hidden:true intact, so re-adding a blocked item does NOT revive it.
+  // nameLower is the doc id, so repeats hit the same document. setDoc(merge)
+  // recreates the suggestion if it was deleted (FR-B2.1): re-adding an item with
+  // that name brings the suggestion back.
   const ref = doc(paths.suggestions(aliasId), nameLower)
   await setDoc(
     ref,
@@ -145,13 +145,14 @@ export async function recordSuggestion(
 
 // ---- suggestion management (FR-B2.1 / FR-B2.2 / FR-13) ----
 
-// Block a suggestion forever (set hidden:true). Autocomplete filters it out and
-// recordSuggestion never clears the flag, so re-adding the item won't revive it.
-export async function blockSuggestion(
+// Delete a suggestion (FR-B2.1). Plain hard delete of the document. If the user
+// later adds an item with the same name again, recordSuggestion (setDoc merge)
+// recreates the suggestion — i.e. it comes back.
+export async function deleteSuggestion(
   aliasId: string,
   id: string,
 ): Promise<void> {
-  await updateDoc(doc(paths.suggestions(aliasId), id), { hidden: true })
+  await deleteDoc(doc(paths.suggestions(aliasId), id))
 }
 
 // Rename a suggestion (FR-B2.2). The doc id stays the original nameLower (so the
