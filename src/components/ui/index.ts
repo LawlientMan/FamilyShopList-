@@ -31,6 +31,8 @@ export { ColorPicker } from './ColorPicker'
 export type { ColorPickerProps } from './ColorPicker'
 export { ItemImage } from './ItemImage'
 export type { ItemImageProps } from './ItemImage'
+export { CopyButton } from './CopyButton'
+export type { CopyButtonProps } from './CopyButton'
 export {
   ICON_SET,
   ICON_KEYS,

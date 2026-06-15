@@ -14,6 +14,7 @@ import { Link2, Plus, X } from 'lucide-react'
 import {
   BottomSheet,
   Button,
+  CopyButton,
   IconButton,
   ItemImage,
   TextInput,
@@ -173,8 +174,10 @@ export function WishlistItemEditorSheet({
                       leftIcon={<Link2 className="h-4 w-4" />}
                       value={url}
                       onChange={(e) => setUrlAt(i, e.target.value)}
+                      onFocus={(e) => e.target.select()}
                     />
                   </div>
+                  <CopyButton text={url.trim()} />
                   {showRemove && (
                     <IconButton
                       label="Remove link"

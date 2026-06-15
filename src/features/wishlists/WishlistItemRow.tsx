@@ -10,6 +10,7 @@ import {
   Avatar,
   Badge,
   ConfirmDialog,
+  CopyButton,
   IconButton,
   ItemImage,
 } from '../../components/ui'
@@ -90,21 +91,25 @@ export function WishlistItemRow({
             </Badge>
           </div>
 
-          {/* FR-12.3: link chips */}
-          {item.urls.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {item.urls.map((url, i) => (
-                <a
-                  key={i}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex max-w-full items-center gap-1 rounded-full bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-700 hover:bg-ink-200"
-                >
-                  <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
-                  <span className="truncate">{hostLabel(url)}</span>
-                </a>
-              ))}
+          {/* FR-12.3: links as a column; each opens in a new tab + copy button */}
+          {item.urls.some((u) => u.trim()) && (
+            <div className="mt-2 flex flex-col gap-1">
+              {item.urls
+                .filter((u) => u.trim())
+                .map((url, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-w-0 flex-1 items-center gap-1 rounded-full bg-ink-100 px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-ink-200"
+                    >
+                      <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+                      <span className="truncate">{hostLabel(url)}</span>
+                    </a>
+                    <CopyButton text={url} />
+                  </div>
+                ))}
             </div>
           )}
         </div>
