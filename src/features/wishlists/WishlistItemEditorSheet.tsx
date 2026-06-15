@@ -1,23 +1,25 @@
-// Add / edit a wishlist item (FR-12.2/12.3/12.4/12.5) in a BottomSheet.
+// Add / edit a wishlist item (FR-12.2/12.3/12.4/12.5/12.8) in a BottomSheet.
 //
 // FR-12.2: name is required, no autocomplete (manual entry only).
+// FR-12.8: optional multiline description.
 // FR-12.3: one or more URLs via a repeatable field with "+ Add link".
-// FR-12.4: when a URL is added/blurred, best-effort microlink preview fills the
-//          image + title; on failure it fails silently and the user can still
-//          paste an image URL manually. Never blocks adding the item.
+// FR-12.4: image is a MANUAL URL the creator pastes (no auto-fetch / microlink).
+//          A fixed-aspect preview (object-contain) shows it, with a "no image"
+//          placeholder when empty or broken.
 // FR-12.5: priority selector low / med / high.
 // No price field (FR-12.7).
 
 import { useEffect, useState } from 'react'
-import { Link2, Loader2, Plus, X } from 'lucide-react'
+import { Link2, Plus, X } from 'lucide-react'
 import {
   BottomSheet,
   Button,
   IconButton,
+  ItemImage,
   TextInput,
+  Textarea,
 } from '../../components/ui'
 import { cn } from '../../lib/cn'
-import { fetchLinkPreview } from '../../lib/wishlists'
 import type { WishlistItemInput } from '../../lib/wishlists'
 import type { Priority, WishlistItem } from '../../types'
 
@@ -48,12 +50,11 @@ export function WishlistItemEditorSheet({
   onSubmit,
 }: WishlistItemEditorSheetProps) {
   const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<Priority>('med')
   // Always keep at least one (possibly empty) URL field for "+ Add link" UX.
   const [urls, setUrls] = useState<string[]>([''])
   const [imageUrl, setImageUrl] = useState('')
-  const [title, setTitle] = useState('')
-  const [previewing, setPreviewing] = useState(false)
   const [saving, setSaving] = useState(false)
 
   // Seed the form whenever it opens (from the item when editing, or blank).
@@ -63,11 +64,10 @@ export function WishlistItemEditorSheet({
     if (!open) return
     const id = setTimeout(() => {
       setName(item?.name ?? '')
+      setDescription(item?.description ?? '')
       setPriority(item?.priority ?? 'med')
       setUrls(item?.urls && item.urls.length > 0 ? [...item.urls] : [''])
       setImageUrl(item?.imageUrl ?? '')
-      setTitle(item?.title ?? '')
-      setPreviewing(false)
     }, 50)
     return () => clearTimeout(id)
   }, [open, item])
@@ -87,21 +87,6 @@ export function WishlistItemEditorSheet({
     })
   }
 
-  // Best-effort preview (FR-12.4). Only auto-fills empty image/title so manual
-  // edits are never overwritten. Failures are silent.
-  async function tryPreview(url: string) {
-    const trimmed = url.trim()
-    if (!trimmed || previewing) return
-    setPreviewing(true)
-    try {
-      const preview = await fetchLinkPreview(trimmed)
-      if (preview.imageUrl && !imageUrl.trim()) setImageUrl(preview.imageUrl)
-      if (preview.title && !title.trim()) setTitle(preview.title)
-    } finally {
-      setPreviewing(false)
-    }
-  }
-
   async function submit() {
     const trimmed = name.trim()
     if (!trimmed || saving) return
@@ -109,10 +94,10 @@ export function WishlistItemEditorSheet({
     try {
       await onSubmit({
         name: trimmed,
+        description: description.trim() || null,
         priority,
         urls,
         imageUrl: imageUrl.trim() || null,
-        title: title.trim() || null,
       })
       onClose()
     } finally {
@@ -134,6 +119,14 @@ export function WishlistItemEditorSheet({
           autoComplete="off"
           value={name}
           onChange={(e) => setName(e.target.value)}
+        />
+
+        {/* FR-12.8: optional multiline description */}
+        <Textarea
+          label="Description"
+          placeholder="Color, size, notes… (optional)"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
         />
 
         {/* FR-12.5: priority selector */}
@@ -179,7 +172,6 @@ export function WishlistItemEditorSheet({
                     leftIcon={<Link2 className="h-4 w-4" />}
                     value={url}
                     onChange={(e) => setUrlAt(i, e.target.value)}
-                    onBlur={(e) => void tryPreview(e.target.value)}
                   />
                   {showRemove && (
                     <IconButton
@@ -203,33 +195,17 @@ export function WishlistItemEditorSheet({
           </button>
         </div>
 
-        {/* FR-12.4: best-effort image, with manual fallback */}
+        {/* FR-12.4: manual image URL + fixed-aspect, object-contain preview */}
         <div>
           <TextInput
             label="Image URL"
-            placeholder="Auto-filled from a link, or paste your own"
+            placeholder="Paste a link to an image (optional)"
             inputMode="url"
             autoComplete="off"
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
-            rightSlot={
-              previewing ? (
-                <span className="pr-2 text-ink-400">
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                </span>
-              ) : undefined
-            }
           />
-          {imageUrl.trim() && (
-            <img
-              src={imageUrl}
-              alt=""
-              className="mt-2 h-28 w-full rounded-card border border-ink-200 object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
-            />
-          )}
+          <ItemImage src={imageUrl} alt={name} className="mt-2" />
         </div>
 
         <div className="flex gap-2">

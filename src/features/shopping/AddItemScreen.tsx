@@ -329,8 +329,16 @@ function AddTab({
               name="item-unit"
               placeholder="unit"
               autoComplete="off"
+              enterKeyHint="done"
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
+              onKeyDown={(e) => {
+                // FR-B3.1: Enter/"Done" dismisses the keyboard (blur).
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  e.currentTarget.blur()
+                }
+              }}
             />
           </div>
         </div>

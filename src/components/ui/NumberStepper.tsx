@@ -50,10 +50,19 @@ export function NumberStepper({
       <input
         type="number"
         inputMode="numeric"
+        enterKeyHint="done"
         aria-label={label}
         value={value ?? ''}
         min={min}
         max={max}
+        onKeyDown={(e) => {
+          // FR-B3.1: Enter/"Done" just dismisses the keyboard (blur) instead of
+          // submitting or advancing focus.
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            e.currentTarget.blur()
+          }
+        }}
         onChange={(e) => {
           const raw = e.target.value
           if (raw === '') {

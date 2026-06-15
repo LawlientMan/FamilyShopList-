@@ -10,6 +10,7 @@ import {
   Button,
   EmptyState,
   FullSpinner,
+  IconBadge,
   IconButton,
 } from '../components/ui'
 import {
@@ -64,6 +65,14 @@ export default function WishlistDetailPage() {
           icon={<ChevronLeft className="h-6 w-6" />}
           onClick={() => navigate('/wishlists')}
         />
+        {wishlist && (
+          <IconBadge
+            icon={wishlist.icon}
+            color={wishlist.color}
+            className="h-9 w-9"
+            iconClassName="h-[1.1rem] w-[1.1rem]"
+          />
+        )}
         <h1 className="min-w-0 flex-1 truncate text-xl font-bold text-ink-900">
           {wishlist?.name ?? 'Wishlist'}
         </h1>

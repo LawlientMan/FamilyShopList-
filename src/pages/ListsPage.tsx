@@ -7,10 +7,12 @@ import {
   Button,
   ConfirmDialog,
   EmptyState,
+  Fab,
   FullSpinner,
   BottomSheet,
 } from '../components/ui'
 import { ListCard, ListEditorSheet, useLists } from '../features/lists'
+import type { ListAppearance } from '../features/lists'
 import type { ShoppingList } from '../types'
 
 // Screen 2 — Named lists overview (FR-10.1/10.2). Shows the list of lists with
@@ -49,13 +51,13 @@ export default function ListsPage() {
     )
   }
 
-  async function handleCreate(name: string) {
-    await createList(activeAliasId!, user!, name)
+  async function handleCreate(name: string, appearance: ListAppearance) {
+    await createList(activeAliasId!, user!, name, appearance)
   }
 
-  async function handleRename(name: string) {
+  async function handleRename(name: string, appearance: ListAppearance) {
     if (!renaming) return
-    await renameList(activeAliasId!, renaming.id, name)
+    await renameList(activeAliasId!, renaming.id, name, appearance)
   }
 
   async function handleDelete() {
@@ -73,15 +75,6 @@ export default function ListsPage() {
     <div className="flex flex-1 flex-col">
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-xl font-bold text-ink-900">Lists</h1>
-        {lists.length > 0 && (
-          <Button
-            size="sm"
-            leftIcon={<Plus className="h-4 w-4" />}
-            onClick={() => setCreating(true)}
-          >
-            New list
-          </Button>
-        )}
       </div>
 
       {loading ? (
@@ -128,6 +121,8 @@ export default function ListsPage() {
         open={renaming !== null}
         mode="rename"
         initialName={renaming?.name}
+        initialIcon={renaming?.icon}
+        initialColor={renaming?.color}
         onClose={() => setRenaming(null)}
         onSubmit={handleRename}
       />
@@ -177,6 +172,9 @@ export default function ListsPage() {
         onConfirm={() => void handleDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {/* FR-17: New list via a floating "+" (replaces the inline header button). */}
+      <Fab label="New list" onClick={() => setCreating(true)} />
     </div>
   )
 }

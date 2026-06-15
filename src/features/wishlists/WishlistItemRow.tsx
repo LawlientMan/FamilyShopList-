@@ -1,11 +1,12 @@
 // One wishlist item row (FR-12). Shows a priority badge, the name, an optional
-// preview image/title, link icons for each URL, and the author avatar (FR-B9).
-// Tapping the row body opens the editor; the trailing button deletes.
+// thumbnail (FR-12.4), an optional description (FR-12.8), link chips for each
+// URL, and the author avatar (FR-B9). Tapping edit opens the editor; the
+// trailing button deletes.
 
 import { useState } from 'react'
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import type { CollectionReference, DocumentData } from 'firebase/firestore'
-import { Avatar, Badge, IconButton } from '../../components/ui'
+import { Avatar, Badge, IconButton, ItemImage } from '../../components/ui'
 import { deleteWishlistItem } from '../../lib/wishlists'
 import type { Priority, WishlistItem } from '../../types'
 
@@ -55,16 +56,13 @@ export function WishlistItemRow({
   return (
     <div className="rounded-card border border-ink-200 bg-white p-3 shadow-card">
       <div className="flex gap-3">
-        {item.imageUrl && (
-          <img
-            src={item.imageUrl}
-            alt=""
-            className="h-16 w-16 shrink-0 rounded-card border border-ink-100 object-cover"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-            }}
-          />
-        )}
+        {/* FR-12.4: thumbnail with object-contain + "no image" fallback. */}
+        <ItemImage
+          src={item.imageUrl}
+          alt={item.name}
+          className="aspect-square h-16 w-16 shrink-0"
+          iconClassName="h-5 w-5"
+        />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
@@ -72,8 +70,11 @@ export function WishlistItemRow({
               <p className="truncate text-sm font-medium text-ink-900">
                 {item.name}
               </p>
-              {item.title && item.title !== item.name && (
-                <p className="truncate text-xs text-ink-500">{item.title}</p>
+              {/* FR-12.8: description shown when present (clamped to 2 lines). */}
+              {item.description && (
+                <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs text-ink-500">
+                  {item.description}
+                </p>
               )}
             </div>
             <Badge tone={PRIORITY_TONE[item.priority]}>

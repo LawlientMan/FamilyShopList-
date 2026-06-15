@@ -8,6 +8,7 @@ import {
   Button,
   ConfirmDialog,
   EmptyState,
+  Fab,
   FullSpinner,
 } from '../components/ui'
 import {
@@ -15,6 +16,7 @@ import {
   WishlistCard,
   WishlistEditorSheet,
 } from '../features/wishlists'
+import type { WishlistAppearance } from '../features/wishlists'
 import type { Wishlist } from '../types'
 
 // Screen 3 — Wishlists overview (FR-12/12.1). Shows the wishlists for the active
@@ -53,13 +55,13 @@ export default function WishlistsPage() {
     )
   }
 
-  async function handleCreate(name: string) {
-    await createWishlist(activeAliasId!, user!, name)
+  async function handleCreate(name: string, appearance: WishlistAppearance) {
+    await createWishlist(activeAliasId!, user!, name, appearance)
   }
 
-  async function handleRename(name: string) {
+  async function handleRename(name: string, appearance: WishlistAppearance) {
     if (!renaming) return
-    await renameWishlist(activeAliasId!, renaming.id, name)
+    await renameWishlist(activeAliasId!, renaming.id, name, appearance)
   }
 
   async function handleDelete() {
@@ -77,15 +79,6 @@ export default function WishlistsPage() {
     <div className="flex flex-1 flex-col">
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-xl font-bold text-ink-900">Wishlists</h1>
-        {wishlists.length > 0 && (
-          <Button
-            size="sm"
-            leftIcon={<Plus className="h-4 w-4" />}
-            onClick={() => setCreating(true)}
-          >
-            New wishlist
-          </Button>
-        )}
       </div>
 
       {loading ? (
@@ -132,6 +125,8 @@ export default function WishlistsPage() {
         open={renaming !== null}
         mode="rename"
         initialName={renaming?.name}
+        initialIcon={renaming?.icon}
+        initialColor={renaming?.color}
         onClose={() => setRenaming(null)}
         onSubmit={handleRename}
       />
@@ -181,6 +176,9 @@ export default function WishlistsPage() {
         onConfirm={() => void handleDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {/* FR-17: New wishlist via a floating "+" (replaces inline header button). */}
+      <Fab label="New wishlist" onClick={() => setCreating(true)} />
     </div>
   )
 }

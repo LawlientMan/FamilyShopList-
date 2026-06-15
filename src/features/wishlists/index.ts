@@ -5,7 +5,10 @@ export { useWishlistItemCount } from './useWishlistItemCount'
 export { WishlistCard } from './WishlistCard'
 export type { WishlistCardProps } from './WishlistCard'
 export { WishlistEditorSheet } from './WishlistEditorSheet'
-export type { WishlistEditorSheetProps } from './WishlistEditorSheet'
+export type {
+  WishlistEditorSheetProps,
+  WishlistAppearance,
+} from './WishlistEditorSheet'
 export { WishlistItemEditorSheet } from './WishlistItemEditorSheet'
 export type { WishlistItemEditorSheetProps } from './WishlistItemEditorSheet'
 export { WishlistItemRow } from './WishlistItemRow'

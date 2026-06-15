@@ -3,8 +3,8 @@
 // items-remaining count is live.
 
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, ListTodo, MoreVertical } from 'lucide-react'
-import { IconButton } from '../../components/ui'
+import { ChevronRight, MoreVertical } from 'lucide-react'
+import { IconBadge, IconButton } from '../../components/ui'
 import { useListRemainingCount } from './useListRemainingCount'
 import type { ShoppingList } from '../../types'
 
@@ -25,9 +25,7 @@ export function ListCard({ aliasId, list, onActions }: ListCardProps) {
         onClick={() => navigate(`/lists/${list.id}`)}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-card px-4 py-3 text-left hover:bg-ink-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-600">
-          <ListTodo className="h-5 w-5" />
-        </span>
+        <IconBadge icon={list.icon} color={list.color} />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium text-ink-900">
             {list.name}

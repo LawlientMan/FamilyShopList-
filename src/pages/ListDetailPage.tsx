@@ -4,7 +4,7 @@ import { ChevronLeft, ListTodo } from 'lucide-react'
 import { useAlias } from '../alias/alias-context'
 import { useAuthUser } from '../auth/auth-context'
 import { paths } from '../lib/db'
-import { EmptyState, IconButton } from '../components/ui'
+import { EmptyState, IconBadge, IconButton } from '../components/ui'
 import { ShoppingItemsView } from '../features/shopping'
 import { useLists } from '../features/lists'
 
@@ -38,6 +38,14 @@ export default function ListDetailPage() {
           icon={<ChevronLeft className="h-6 w-6" />}
           onClick={() => navigate('/lists')}
         />
+        {list && (
+          <IconBadge
+            icon={list.icon}
+            color={list.color}
+            className="h-9 w-9"
+            iconClassName="h-[1.1rem] w-[1.1rem]"
+          />
+        )}
         <h1 className="min-w-0 flex-1 truncate text-xl font-bold text-ink-900">
           {list?.name ?? 'List'}
         </h1>

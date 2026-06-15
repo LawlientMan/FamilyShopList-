@@ -15,31 +15,39 @@ import {
 import type { CollectionReference, DocumentData } from 'firebase/firestore'
 import type { User as FirebaseUser } from 'firebase/auth'
 import { paths } from './db'
+import { DEFAULT_ICON_KEY, DEFAULT_COLOR } from '../components/ui/iconSet'
 import type { Priority, WishlistItem } from '../types'
 
-// ---- wishlists (FR-12.1) ----
+// ---- wishlists (FR-12.1 / FR-16) ----
 
 export async function createWishlist(
   aliasId: string,
   fbUser: FirebaseUser,
   name: string,
+  appearance?: { icon?: string; color?: string },
 ): Promise<string> {
   const ref = await addDoc(paths.wishlists(aliasId), {
     name: name.trim(),
     createdBy: fbUser.uid,
     createdAt: serverTimestamp(),
+    icon: appearance?.icon ?? DEFAULT_ICON_KEY,
+    color: appearance?.color ?? DEFAULT_COLOR,
   })
   return ref.id
 }
 
+// Rename and/or update appearance (icon/color, FR-16). Only provided fields
+// are written.
 export async function renameWishlist(
   aliasId: string,
   wishlistId: string,
   name: string,
+  appearance?: { icon?: string; color?: string },
 ): Promise<void> {
-  await updateDoc(doc(paths.wishlists(aliasId), wishlistId), {
-    name: name.trim(),
-  })
+  const patch: Record<string, unknown> = { name: name.trim() }
+  if (appearance?.icon !== undefined) patch.icon = appearance.icon
+  if (appearance?.color !== undefined) patch.color = appearance.color
+  await updateDoc(doc(paths.wishlists(aliasId), wishlistId), patch)
 }
 
 // Delete a wishlist. Items in its subcollection are removed first so no orphans
@@ -57,21 +65,22 @@ export async function deleteWishlist(
 
 export interface WishlistItemInput {
   name: string
+  description: string | null
   priority: Priority
   urls: string[]
   imageUrl: string | null
-  title: string | null
 }
 
 // Normalize a user-supplied input into a stored payload: trim the name, drop
-// blank URLs, and coerce empty image/title to null.
+// blank URLs, and coerce empty description/image to null. The image URL is a
+// MANUAL link from the creator (FR-12.4) — no auto-fetch.
 function cleanInput(input: WishlistItemInput) {
   return {
     name: input.name.trim(),
+    description: input.description?.trim() ? input.description.trim() : null,
     priority: input.priority,
     urls: input.urls.map((u) => u.trim()).filter(Boolean),
     imageUrl: input.imageUrl?.trim() ? input.imageUrl.trim() : null,
-    title: input.title?.trim() ? input.title.trim() : null,
   }
 }
 
@@ -119,37 +128,4 @@ export function sortWishlistItems(items: WishlistItem[]): WishlistItem[] {
     if (byPriority !== 0) return byPriority
     return a.name.localeCompare(b.name)
   })
-}
-
-// ---- link preview (FR-12.4, best-effort via microlink.io) ----
-
-export interface LinkPreview {
-  imageUrl: string | null
-  title: string | null
-}
-
-// Fetch a best-effort preview (image + title) for a URL. On any failure (CORS,
-// rate limit, network, non-OK), resolves to nulls — never throws, never blocks
-// adding the item. The caller can still set imageUrl manually.
-export async function fetchLinkPreview(url: string): Promise<LinkPreview> {
-  const empty: LinkPreview = { imageUrl: null, title: null }
-  const trimmed = url.trim()
-  if (!trimmed) return empty
-  try {
-    const res = await fetch(
-      `https://api.microlink.io/?url=${encodeURIComponent(trimmed)}`,
-    )
-    if (!res.ok) return empty
-    const json = (await res.json()) as {
-      status?: string
-      data?: { title?: string; image?: { url?: string } }
-    }
-    if (json.status !== 'success' || !json.data) return empty
-    return {
-      imageUrl: json.data.image?.url ?? null,
-      title: json.data.title ?? null,
-    }
-  } catch {
-    return empty
-  }
 }

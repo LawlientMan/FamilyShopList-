@@ -39,6 +39,25 @@ export default function MorePage() {
       >
         Sign out
       </Button>
+
+      {/* FR-15: About — app name, version (package.json), last release (build date). */}
+      <section className="mt-6 rounded-card bg-white p-4 shadow-card">
+        <h2 className="mb-3 text-sm font-semibold text-ink-900">About</h2>
+        <dl className="space-y-2 text-sm">
+          <div className="flex items-center justify-between">
+            <dt className="text-ink-500">App</dt>
+            <dd className="font-medium text-ink-900">Family Shop</dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-ink-500">Version</dt>
+            <dd className="font-medium text-ink-900">{__APP_VERSION__}</dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-ink-500">Last release</dt>
+            <dd className="font-medium text-ink-900">{__BUILD_DATE__}</dd>
+          </div>
+        </dl>
+      </section>
     </div>
   )
 }

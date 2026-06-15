@@ -19,6 +19,7 @@ import {
 } from 'firebase/firestore'
 import type { User as FirebaseUser } from 'firebase/auth'
 import { db } from './firebase'
+import { DEFAULT_ICON_KEY, DEFAULT_COLOR } from '../components/ui/iconSet'
 import type { Alias, Invite, Member, User } from '../types'
 
 // ---- collection / doc path helpers (single source of truth for paths) ----
@@ -228,28 +229,38 @@ export async function regenerateInvite(alias: Alias): Promise<string> {
   return newCode
 }
 
-// ---- named lists (FR-10.2) ----
-// Lists live at aliases/{aliasId}/lists/{listId} with { name, createdAt, createdBy }.
-// Their items reuse the shopping-item shape (paths.listItems + lib/items.ts).
+// ---- named lists (FR-10.2 / FR-16) ----
+// Lists live at aliases/{aliasId}/lists/{listId} with { name, createdAt,
+// createdBy } plus an optional icon key + tint color (FR-16). Their items reuse
+// the shopping-item shape (paths.listItems + lib/items.ts).
 export async function createList(
   aliasId: string,
   fbUser: FirebaseUser,
   name: string,
+  appearance?: { icon?: string; color?: string },
 ): Promise<string> {
   const ref = await addDoc(paths.lists(aliasId), {
     name: name.trim(),
     createdBy: fbUser.uid,
     createdAt: serverTimestamp(),
+    icon: appearance?.icon ?? DEFAULT_ICON_KEY,
+    color: appearance?.color ?? DEFAULT_COLOR,
   })
   return ref.id
 }
 
+// Rename and/or update appearance (icon/color, FR-16) of a list. Only the
+// provided fields are written.
 export async function renameList(
   aliasId: string,
   listId: string,
   name: string,
+  appearance?: { icon?: string; color?: string },
 ): Promise<void> {
-  await updateDoc(doc(paths.lists(aliasId), listId), { name: name.trim() })
+  const patch: Record<string, unknown> = { name: name.trim() }
+  if (appearance?.icon !== undefined) patch.icon = appearance.icon
+  if (appearance?.color !== undefined) patch.color = appearance.color
+  await updateDoc(doc(paths.lists(aliasId), listId), patch)
 }
 
 // Delete a list. Items in its subcollection are removed first so no orphans are

@@ -69,6 +69,10 @@ export interface ShoppingList {
   name: string
   createdAt: Timestamp
   createdBy: string
+  // v1.3 (FR-16): optional icon key + tint color. Pre-v1.3 docs lack these and
+  // render with defaults (DEFAULT_ICON_KEY + DEFAULT_COLOR).
+  icon?: string
+  color?: string
 }
 
 // ---- aliases/{aliasId}/wishlists/{wishlistId} ----
@@ -77,16 +81,21 @@ export interface Wishlist {
   name: string
   createdAt: Timestamp
   createdBy: string
+  // v1.3 (FR-16): optional icon key + tint color (see ShoppingList).
+  icon?: string
+  color?: string
 }
 
 // ---- aliases/{aliasId}/wishlists/{wishlistId}/items/{itemId} ----
 export interface WishlistItem {
   id: string
   name: string
+  // v1.3 (FR-12.8): optional, multiline description.
+  description: string | null
   priority: Priority
   urls: string[]
+  // v1.3 (FR-12.4): manual image URL pasted by the creator (no auto-fetch).
   imageUrl: string | null
-  title: string | null
   authorId: string
   authorName: string
   authorPhoto: string | null
