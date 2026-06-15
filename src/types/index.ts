@@ -34,6 +34,9 @@ export interface Alias {
   ownerId: string
   inviteCode: string
   createdAt: Timestamp
+  // v1.4 (FR-18): soft-delete trash marker. null/absent = active; set = in the
+  // owner's "Deleted spaces" trash (restorable). Pre-v1.4 docs lack it.
+  deletedAt?: Timestamp | null
 }
 
 // ---- aliases/{aliasId}/members/{uid} : membership source of truth ----
@@ -84,6 +87,9 @@ export interface Wishlist {
   // v1.3 (FR-16): optional icon key + tint color (see ShoppingList).
   icon?: string
   color?: string
+  // v1.4 (FR-18): soft-delete trash marker. null/absent = active; set = in the
+  // "Deleted" trash (restorable). Pre-v1.4 docs lack it.
+  deletedAt?: Timestamp | null
 }
 
 // ---- aliases/{aliasId}/wishlists/{wishlistId}/items/{itemId} ----

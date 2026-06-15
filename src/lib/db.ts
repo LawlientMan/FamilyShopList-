@@ -289,13 +289,29 @@ export async function renameAlias(alias: Alias, name: string): Promise<void> {
   }
 }
 
-// Delete an alias (owner-only). Spark has no server cascade, so we do a small,
-// safe client-side cleanup: remove the member docs and the current invite, then
-// the alias document itself. Larger content subcollections (items, suggestions,
-// wishlists) may remain orphaned and unreachable — acceptable for a family app.
-// Member docs are deleted last-but-before the alias so the owner still passes
-// isOwner() (which reads the alias doc) while removing them.
+// Soft-delete an alias (FR-18, owner-only per rules). Moves it to the owner's
+// "Deleted spaces" trash by stamping deletedAt; the switcher hides it from the
+// ACTIVE list but membership is unchanged, so the data is still readable and a
+// Restore is a single field flip. Reversible — no data loss.
 export async function deleteAlias(alias: Alias): Promise<void> {
+  await updateDoc(paths.alias(alias.id), { deletedAt: serverTimestamp() })
+}
+
+// Restore a soft-deleted alias (FR-18, owner-only): clear the trash marker so it
+// reappears in the ACTIVE switcher list.
+export async function restoreAlias(alias: Alias): Promise<void> {
+  await updateDoc(paths.alias(alias.id), { deletedAt: null })
+}
+
+// Permanently delete an alias and its content (FR-18 "Delete forever",
+// owner-only). IRREVERSIBLE. Spark has no server cascade, so we do a best-effort,
+// sequential client-side cleanup (no transactions): deactivate the invite,
+// remove member + content subcollections (quickItems, lists/*+items,
+// wishlists/*+items, suggestions), then the alias doc itself. Member docs are
+// removed before the alias so the owner still passes isOwner() (which reads the
+// alias doc via get()) while clearing them. Any straggler that fails is left
+// orphaned/unreachable — acceptable for a family app.
+export async function deleteAliasForever(alias: Alias): Promise<void> {
   // 1) deactivate the current invite (owner-gated UPDATE — the invites rule
   //    checks isOwner via request.resource.data.aliasId, which a delete lacks,
   //    so we flip active:false instead of deleting the lookup doc).
@@ -304,13 +320,49 @@ export async function deleteAlias(alias: Alias): Promise<void> {
       () => {},
     )
   }
-  // 2) delete member docs (owner-only delete per rules). These are read via
-  //    the nested members rule (isActiveMember) — the owner is active here.
-  const members = await getDocs(paths.members(alias.id))
-  await Promise.all(members.docs.map((d) => deleteDoc(d.ref).catch(() => {})))
-  // 3) delete the alias document (owner-only). Content subcollections (items,
-  //    suggestions, wishlists) may remain orphaned/unreachable — acceptable.
-  await deleteDoc(paths.alias(alias.id))
+
+  // 2) quickItems (flat) — delete every doc.
+  await deleteAllDocs(paths.quickItems(alias.id))
+
+  // 3) lists/* and each list's items subcollection.
+  const lists = await getDocs(paths.lists(alias.id)).catch(() => null)
+  if (lists) {
+    for (const listDoc of lists.docs) {
+      await deleteAllDocs(paths.listItems(alias.id, listDoc.id))
+      await deleteDoc(listDoc.ref).catch(() => {})
+    }
+  }
+
+  // 4) wishlists/* and each wishlist's items subcollection.
+  const wishlists = await getDocs(paths.wishlists(alias.id)).catch(() => null)
+  if (wishlists) {
+    for (const wishlistDoc of wishlists.docs) {
+      await deleteAllDocs(paths.wishlistItems(alias.id, wishlistDoc.id))
+      await deleteDoc(wishlistDoc.ref).catch(() => {})
+    }
+  }
+
+  // 5) suggestions (flat).
+  await deleteAllDocs(paths.suggestions(alias.id))
+
+  // 6) member docs (owner-only delete per rules; the owner is active here).
+  const members = await getDocs(paths.members(alias.id)).catch(() => null)
+  if (members) {
+    await Promise.all(members.docs.map((d) => deleteDoc(d.ref).catch(() => {})))
+  }
+
+  // 7) the alias document itself (owner-only).
+  await deleteDoc(paths.alias(alias.id)).catch(() => {})
+}
+
+// Best-effort: delete every document in a collection. Failures are swallowed so
+// one bad doc never aborts a "Delete forever" cleanup.
+async function deleteAllDocs(
+  col: ReturnType<typeof collection>,
+): Promise<void> {
+  const snap = await getDocs(col).catch(() => null)
+  if (!snap) return
+  await Promise.all(snap.docs.map((d) => deleteDoc(d.ref).catch(() => {})))
 }
 
 // ---- list my aliases (for the switcher, DATA-MODEL.md collectionGroup query) ----

@@ -2,7 +2,13 @@ import { createContext, useContext } from 'react'
 import type { Alias } from '../types'
 
 export interface AliasContextValue {
+  /** ACTIVE spaces (deletedAt null/absent) — the switcher list. */
   aliases: Alias[]
+  /**
+   * Soft-deleted spaces this user OWNS (FR-18 trash). Owners manage their own
+   * trash; non-owners never see another member's deleted space.
+   */
+  deletedAliases: Alias[]
   /** The currently active alias, or null until one is chosen/created. */
   activeAlias: Alias | null
   activeAliasId: string | null

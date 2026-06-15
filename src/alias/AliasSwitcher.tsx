@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Check, LogIn, Pencil, Plus, Star, Trash2 } from 'lucide-react'
+import {
+  Check,
+  LogIn,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Star,
+  Trash2,
+} from 'lucide-react'
 import {
   BottomSheet,
   Button,
@@ -13,8 +21,10 @@ import {
   getUser,
   createAlias,
   deleteAlias,
+  deleteAliasForever,
   joinByCode,
   renameAlias,
+  restoreAlias,
 } from '../lib/db'
 import { cn } from '../lib/cn'
 import type { Alias } from '../types'
@@ -31,8 +41,14 @@ export function AliasSwitcher({
   onClose: () => void
 }) {
   const { user } = useAuthUser()
-  const { aliases, activeAliasId, setActiveAliasId, makeDefault, refresh } =
-    useAlias()
+  const {
+    aliases,
+    deletedAliases,
+    activeAliasId,
+    setActiveAliasId,
+    makeDefault,
+    refresh,
+  } = useAlias()
 
   const [mode, setMode] = useState<Mode>('list')
   const [defaultAliasId, setDefaultAliasIdState] = useState<string | null>(null)
@@ -46,6 +62,10 @@ export function AliasSwitcher({
   const [renameValue, setRenameValue] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Alias | null>(null)
   const [crudBusy, setCrudBusy] = useState(false)
+
+  // Trash (FR-18): restore + permanent "Delete forever" with type-to-confirm.
+  const [foreverTarget, setForeverTarget] = useState<Alias | null>(null)
+  const [foreverConfirm, setForeverConfirm] = useState('')
 
   const handleRename = async () => {
     if (!renameTarget || !renameValue.trim() || crudBusy) return
@@ -63,11 +83,38 @@ export function AliasSwitcher({
     if (!deleteTarget || crudBusy) return
     setCrudBusy(true)
     try {
+      // Soft-delete (FR-18): moves to "Deleted spaces" trash. refresh re-picks
+      // an ACTIVE alias (provider falls back to default/first remaining active).
       await deleteAlias(deleteTarget)
-      // Drop it locally and let refresh re-pick an active alias (provider falls
-      // back to default/first remaining membership).
       await refresh()
       setDeleteTarget(null)
+    } finally {
+      setCrudBusy(false)
+    }
+  }
+
+  const handleRestore = async (alias: Alias) => {
+    if (crudBusy) return
+    setCrudBusy(true)
+    try {
+      await restoreAlias(alias)
+      await refresh()
+    } finally {
+      setCrudBusy(false)
+    }
+  }
+
+  const handleDeleteForever = async () => {
+    if (!foreverTarget || crudBusy) return
+    // Guard: the destructive button is disabled until the typed name matches,
+    // but re-check here too.
+    if (foreverConfirm.trim() !== foreverTarget.name) return
+    setCrudBusy(true)
+    try {
+      await deleteAliasForever(foreverTarget)
+      await refresh()
+      setForeverTarget(null)
+      setForeverConfirm('')
     } finally {
       setCrudBusy(false)
     }
@@ -190,6 +237,45 @@ export function AliasSwitcher({
               Create new space
             </Button>
           </div>
+
+          {/* Trash (FR-18): owner-only "Deleted spaces" — restore or delete
+              forever. Hidden entirely when the trash is empty. */}
+          {deletedAliases.length > 0 && (
+            <div className="mt-4 border-t border-ink-100 pt-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                Deleted spaces
+              </h3>
+              <ul className="flex flex-col gap-1">
+                {deletedAliases.map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-center gap-0.5 rounded-card px-3 py-2"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-base text-ink-500">
+                      {a.name}
+                    </span>
+                    <IconButton
+                      label={`Restore ${a.name}`}
+                      size="sm"
+                      icon={<RotateCcw className="h-4 w-4" />}
+                      onClick={() => void handleRestore(a)}
+                      className="text-ink-500"
+                    />
+                    <IconButton
+                      label={`Delete ${a.name} forever`}
+                      size="sm"
+                      icon={<Trash2 className="h-4 w-4" />}
+                      onClick={() => {
+                        setForeverConfirm('')
+                        setForeverTarget(a)
+                      }}
+                      className="text-red-500"
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
@@ -303,17 +389,65 @@ export function AliasSwitcher({
       </div>
     </BottomSheet>
 
-    {/* Owner: delete a space (FR-13) */}
+    {/* Owner: soft-delete a space → trash (FR-18) */}
     <ConfirmDialog
       open={deleteTarget !== null}
       title="Delete space?"
-      message={`"${deleteTarget?.name ?? 'This space'}" and its membership will be removed for everyone. This can't be undone.`}
+      message={`"${deleteTarget?.name ?? 'This space'}" will move to Deleted spaces. You can restore it later, or delete it forever from there.`}
       confirmLabel="Delete"
       destructive
       loading={crudBusy}
       onConfirm={() => void handleDelete()}
       onCancel={() => setDeleteTarget(null)}
     />
+
+    {/* Owner: permanently delete a space — requires typing its name (FR-18) */}
+    <BottomSheet
+      open={foreverTarget !== null}
+      onClose={() => {
+        setForeverTarget(null)
+        setForeverConfirm('')
+      }}
+      title="Delete forever?"
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-ink-600">
+          {`"${foreverTarget?.name ?? 'This space'}" and all of its lists, wishlists, and items will be permanently deleted for everyone. This can't be undone.`}
+        </p>
+        <TextInput
+          name="confirm-space-name"
+          label={`Type "${foreverTarget?.name ?? ''}" to confirm`}
+          autoComplete="off"
+          autoFocus
+          value={foreverConfirm}
+          onChange={(e) => setForeverConfirm(e.target.value)}
+        />
+        <div className="flex gap-3">
+          <Button
+            variant="secondary"
+            fullWidth
+            onClick={() => {
+              setForeverTarget(null)
+              setForeverConfirm('')
+            }}
+            disabled={crudBusy}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            fullWidth
+            loading={crudBusy}
+            disabled={
+              !foreverTarget || foreverConfirm.trim() !== foreverTarget.name
+            }
+            onClick={() => void handleDeleteForever()}
+          >
+            Delete forever
+          </Button>
+        </div>
+      </div>
+    </BottomSheet>
     </>
   )
 }

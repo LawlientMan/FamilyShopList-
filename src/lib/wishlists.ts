@@ -50,9 +50,33 @@ export async function renameWishlist(
   await updateDoc(doc(paths.wishlists(aliasId), wishlistId), patch)
 }
 
-// Delete a wishlist. Items in its subcollection are removed first so no orphans
-// are left (Firestore has no client-side cascade; family-sized lists are small).
+// Soft-delete a wishlist (FR-18). Moves it to the "Deleted" trash by stamping
+// deletedAt; the overview hides it from the ACTIVE list but it stays readable
+// and Restore is a single field flip. Reversible — no data loss.
 export async function deleteWishlist(
+  aliasId: string,
+  wishlistId: string,
+): Promise<void> {
+  await updateDoc(doc(paths.wishlists(aliasId), wishlistId), {
+    deletedAt: serverTimestamp(),
+  })
+}
+
+// Restore a soft-deleted wishlist (FR-18): clear the trash marker so it returns
+// to the ACTIVE list.
+export async function restoreWishlist(
+  aliasId: string,
+  wishlistId: string,
+): Promise<void> {
+  await updateDoc(doc(paths.wishlists(aliasId), wishlistId), {
+    deletedAt: null,
+  })
+}
+
+// Permanently delete a wishlist and its items (FR-18 "Delete forever").
+// IRREVERSIBLE. Items in its subcollection are removed first so no orphans are
+// left (Firestore has no client-side cascade; family-sized lists are small).
+export async function deleteWishlistForever(
   aliasId: string,
   wishlistId: string,
 ): Promise<void> {
