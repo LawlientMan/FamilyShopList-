@@ -33,7 +33,7 @@ export function NumberStepper({
   return (
     <div
       className={cn(
-        'inline-flex h-12 items-center gap-1 rounded-card border border-ink-200 bg-white p-1',
+        'flex h-12 w-full items-center gap-1 rounded-card border border-ink-200 bg-white p-1',
         className,
       )}
       role="group"
@@ -64,7 +64,7 @@ export function NumberStepper({
           const n = Number(raw)
           if (!Number.isNaN(n)) onChange(clamp(n))
         }}
-        className="w-12 border-0 bg-transparent text-center font-medium text-ink-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="w-full min-w-0 flex-1 border-0 bg-transparent text-center font-medium text-ink-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       <IconButton
         size="sm"

@@ -231,7 +231,6 @@ export function AddItemScreen({
               suggestions={suggestions}
               aliasId={aliasId}
               onManage={() => setTab('manage')}
-              onSubmit={() => void submit()}
             />
           ) : (
             <ManageTab aliasId={aliasId} />
@@ -272,7 +271,6 @@ function AddTab({
   suggestions,
   aliasId,
   onManage,
-  onSubmit,
 }: {
   isEdit: boolean
   name: string
@@ -285,7 +283,6 @@ function AddTab({
   suggestions: Suggestion[]
   aliasId: string
   onManage: () => void
-  onSubmit: () => void
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -295,12 +292,15 @@ function AddTab({
         label="Name"
         placeholder="What do you need?"
         autoComplete="off"
+        enterKeyHint="done"
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
+          // "Done"/Enter just dismisses the keyboard (blur) instead of advancing
+          // focus to the quantity field or submitting.
           if (e.key === 'Enter') {
             e.preventDefault()
-            onSubmit()
+            e.currentTarget.blur()
           }
         }}
       />
@@ -311,7 +311,9 @@ function AddTab({
           Quantity <span className="font-normal text-ink-400">(optional)</span>
         </span>
         <div className="flex items-center gap-2">
-          <NumberStepper value={qty} onChange={setQty} />
+          <div className="flex-1">
+            <NumberStepper value={qty} onChange={setQty} />
+          </div>
           <div className="flex-1">
             <TextInput
               name="item-unit"
