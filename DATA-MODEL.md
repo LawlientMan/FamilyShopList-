@@ -42,11 +42,15 @@ aliases/{aliasId}
 
   lists/{listId}                         // ЭКРАН 2: именованные списки
     - name, createdAt, createdBy
+    - icon  : string                      // v1.3: ключ иконки из набора (~30 SVG)
+    - color : string                      // v1.3: hex цвета (тинт иконки)
     items/{itemId}
       - <shopping item, см. ниже>
 
   wishlists/{wishlistId}                 // ЭКРАН 3
     - name, createdAt, createdBy
+    - icon  : string                      // v1.3
+    - color : string                      // v1.3 (hex)
     items/{itemId}
       - <wishlist item, см. ниже>
 
@@ -87,18 +91,19 @@ aliases/{aliasId}
 ```
 {
   name        : string,
+  description : string,              // v1.3: необязательное, многострочное
   priority    : 'high' | 'med' | 'low',
-  urls        : string[],            // несколько ссылок
-  imageUrl    : string | null,       // из microlink или вручную
-  title       : string | null,       // из microlink
+  urls        : string[],            // несколько ссылок на товар
+  imageUrl    : string,              // v1.3: РУЧНАЯ ссылка на картинку (создатель)
   authorId, authorName, authorPhoto,
   createdAt, updatedAt
 }
 ```
 - **Сортировка (FR-12.6):** клиентская — по приоритету (high→med→low),
   внутри — по `name` (алфавит).
-- **Превью:** при добавлении URL клиент дёргает microlink.io (best-effort).
-  Вышло — заполняем `imageUrl/title`; нет — поля можно задать вручную.
+- **Картинка (FR-12.4):** `imageUrl` — ручная ссылка от создателя (microlink НЕ
+  используем). В UI `<img>` с `onError` → дефолтный плейсхолдер «no image»;
+  контейнер фикс. пропорций, `object-contain` (без вертикальной обрезки).
 
 ## Поток вступления по коду (ключевой момент)
 
