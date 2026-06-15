@@ -20,6 +20,12 @@ dist-ssr
 # PWA dev artifacts
 dev-dist
 
+# Firebase deploy cache
+.firebase
+
+# Local tooling
+.claude
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
