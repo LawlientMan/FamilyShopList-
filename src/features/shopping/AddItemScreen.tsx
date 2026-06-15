@@ -94,6 +94,16 @@ export function AddItemScreen({
   const nameRef = useRef<HTMLInputElement>(null)
   const suggestions = useSuggestions(aliasId, isEdit ? '' : name)
 
+  // The parent passes a fresh onClose closure each render. Keep the latest in a
+  // ref so the Escape / back-gesture effects can depend only on `open` — if they
+  // depended on onClose's identity they'd re-run on every parent re-render (e.g.
+  // the live items subscription firing) and spuriously call history.back(),
+  // popping real routes (the "adding in a List jumps to Quick" bug).
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
   // Seed fields + focus when the screen opens (deferred past the slide-in so we
   // don't setState synchronously in the effect, and focus lands after paint).
   useEffect(() => {
@@ -112,7 +122,7 @@ export function AddItemScreen({
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
     }
     document.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
@@ -121,7 +131,7 @@ export function AddItemScreen({
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prev
     }
-  }, [open, onClose])
+  }, [open])
 
   // Back gesture / hardware Back closes the screen instead of navigating the
   // router away from the current page. On open we push a throwaway history
@@ -136,7 +146,7 @@ export function AddItemScreen({
     window.history.pushState({ addItem: true }, '')
     const onPop = () => {
       poppedRef = true
-      onClose()
+      onCloseRef.current()
     }
     window.addEventListener('popstate', onPop)
     return () => {
@@ -144,7 +154,7 @@ export function AddItemScreen({
       // UI-driven close: our pushed entry is still on top, so pop it once.
       if (!poppedRef) window.history.back()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 
