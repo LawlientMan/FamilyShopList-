@@ -145,6 +145,14 @@ export const ICON_SET: Record<string, LucideIcon> = {
 // Stable key order (insertion order of ICON_SET).
 export const ICON_KEYS = Object.keys(ICON_SET)
 
+// The 18 most-used icons, shown first in the picker; a "More" button reveals the
+// rest (FR-16) so the editor sheet stays short and doesn't need scrolling.
+export const CORE_ICON_KEYS = [
+  'cart', 'basket', 'gift', 'home', 'cake', 'heart',
+  'milk', 'bread', 'apple', 'carrot', 'pizza', 'coffee',
+  'meat', 'fish', 'shirt', 'pill', 'cleaning', 'car',
+]
+
 // Defaults for pre-v1.3 docs (no icon/color) and for new docs (FR-16).
 export const DEFAULT_ICON_KEY = 'cart'
 export const DEFAULT_COLOR = '#0d9488' // brand teal (matches PWA theme_color)

@@ -1,8 +1,10 @@
-// Grid picker for the 30-icon set (FR-16). Each cell renders the icon tinted
-// with the currently-selected color so the user previews the final look. The
-// selected cell gets a colored ring + faint fill.
+// Grid picker for the icon set (FR-16). Each cell renders the icon tinted with
+// the currently-selected color so the user previews the final look. The selected
+// cell gets a colored ring + faint fill. Shows 18 core icons by default with a
+// "More" toggle to reveal the full set so the sheet stays short.
 
-import { ICON_KEYS, ICON_SET, DEFAULT_COLOR } from './iconSet'
+import { useState } from 'react'
+import { ICON_KEYS, CORE_ICON_KEYS, ICON_SET, DEFAULT_COLOR } from './iconSet'
 import { cn } from '../../lib/cn'
 
 export interface IconPickerProps {
@@ -19,13 +21,23 @@ export function IconPicker({
   color = DEFAULT_COLOR,
   label = 'Icon',
 }: IconPickerProps) {
+  const [expanded, setExpanded] = useState(false)
+
+  // Collapsed: the 18 core icons, plus the current selection if it's outside the
+  // core set (so the chosen icon stays visible/highlighted). Expanded: everything.
+  const keys = expanded
+    ? ICON_KEYS
+    : value && !CORE_ICON_KEYS.includes(value) && ICON_SET[value]
+      ? [value, ...CORE_ICON_KEYS]
+      : CORE_ICON_KEYS
+
   return (
     <div>
       <span className="mb-1.5 block text-sm font-medium text-ink-700">
         {label}
       </span>
       <div className="grid grid-cols-6 gap-2">
-        {ICON_KEYS.map((key) => {
+        {keys.map((key) => {
           const Icon = ICON_SET[key]
           const active = value === key
           return (
@@ -54,6 +66,13 @@ export function IconPicker({
           )
         })}
       </div>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="mt-2 text-sm font-medium text-primary-600 hover:text-primary-700 focus:outline-none focus-visible:underline"
+      >
+        {expanded ? 'Show less' : `More (${ICON_KEYS.length})`}
+      </button>
     </div>
   )
 }
