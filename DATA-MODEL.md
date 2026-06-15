@@ -52,6 +52,9 @@ aliases/{aliasId}
 
   suggestions/{suggestionId}             // история для автозаполнения
     - name, nameLower, count, lastUsedAt
+    - hidden : bool                       // v1.1: blocked -> никогда не предлагать;
+                                          //   recordSuggestion НЕ снимает hidden.
+                                          //   автозаполнение фильтрует hidden на клиенте.
 ```
 
 ## Формы документов
