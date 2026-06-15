@@ -28,6 +28,9 @@ aliases/{aliasId}
   - ownerId : uid
   - inviteCode : string                  // текущий код; regenerate его меняет
   - createdAt
+  - deletedAt : timestamp | null         // v1.4: корзина (soft-delete, FR-18);
+                                         //   null/нет = активный. Delete forever
+                                         //   реально удаляет документ+подколлекции.
 
   members/{uid}                          // ИСТОЧНИК ИСТИНЫ по членству
     - uid                                // дублируем для collectionGroup-запроса
@@ -51,6 +54,7 @@ aliases/{aliasId}
     - name, createdAt, createdBy
     - icon  : string                      // v1.3
     - color : string                      // v1.3 (hex)
+    - deletedAt : timestamp | null         // v1.4: корзина (soft-delete, FR-18)
     items/{itemId}
       - <wishlist item, см. ниже>
 
