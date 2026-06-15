@@ -168,10 +168,3 @@ export async function renameSuggestion(
     nameLower: normalizeName(trimmed),
   })
 }
-
-export async function deleteSuggestion(
-  aliasId: string,
-  id: string,
-): Promise<void> {
-  await deleteDoc(doc(paths.suggestions(aliasId), id))
-}
