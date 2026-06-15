@@ -52,7 +52,6 @@ export function NumberStepper({
         inputMode="numeric"
         aria-label={label}
         value={value ?? ''}
-        placeholder="—"
         min={min}
         max={max}
         onChange={(e) => {
